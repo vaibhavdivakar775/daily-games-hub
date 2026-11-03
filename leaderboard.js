@@ -21,7 +21,7 @@ export function buildBoard(rows) {
       t.points += points;
       t.played += 1;
       if (best) t.wins += 1;
-      return { name: r.name, label: r.label, points, rank: better + 1, best };
+      return { name: r.name, label: r.label, value: r.value, points, rank: better + 1, best };
     });
   }
 

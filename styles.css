@@ -106,6 +106,7 @@ b { font-weight: 600; }
 }
 .profile svg path { fill: var(--on-orange); }
 .profile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dateline .me-streak { margin-left: 10px; font-weight: 700; color: var(--orange); }
 .dateline {
   font: 500 14px/1 var(--sans); color: var(--muted); text-align: center;
   padding: 9px 0; border-bottom: 1px solid var(--rule);
@@ -195,6 +196,7 @@ dialog .intro { margin: -6px 0 16px; font: 15px/1.45 var(--sans); color: var(--i
   font-size: 13px; font-weight: 800;
   border-bottom: 2px solid var(--orange); padding: 4px 0;
 }
+.stamp.best { color: var(--on-orange); background: var(--orange); }
 .game .x {
   border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;
 }
@@ -256,6 +258,15 @@ dialog .intro { margin: -6px 0 16px; font: 15px/1.45 var(--sans); color: var(--i
 .standings td.v { text-align: right; font: 700 17px var(--sans); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .standings .wins { display: block; font: 500 12px var(--sans); color: var(--muted); }
 .standings tr.me td.n .nm::after { content: " (you)"; font: 500 14px var(--sans); color: var(--orange); }
+
+/* yesterday's winner, above today's standings */
+.champ {
+  margin: 16px 0 0; padding: 10px 12px; background: var(--paper-2);
+  border-left: 4px solid var(--orange); font: 15px/1.4 var(--sans); color: var(--ink-soft);
+}
+.champ b { color: var(--ink); font-weight: 700; }
+.standings .streak { margin-left: 8px; font: 700 13px var(--sans); color: var(--orange); white-space: nowrap; }
+.pb { font-weight: 700; color: var(--orange); white-space: nowrap; }
 
 /* how many of today's games each person has played */
 .standings .progress {

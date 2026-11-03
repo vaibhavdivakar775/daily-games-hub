@@ -2,6 +2,7 @@ import { GAMES, GAME_BY_ID, parseAll, daysOld } from './games.js';
 import { GROUP } from './config.js';
 import { isDemo, dateKey, submitResults, removeResults, fetchRows, resetDemo } from './storage.js';
 import { buildBoard, pointsFor } from './leaderboard.js';
+import { addDays, streakOf, bestOf, isNewBest, championsOf } from './stats.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -79,6 +80,61 @@ function showTab(name) {
   window.scrollTo(0, 0);
 }
 
+// ---------- score history (streaks, personal bests, yesterday's champion) ----------
+// One download of this month's and last month's scores, shared by the header, the Play tab
+// and the leaderboard. Reused for 15 s so switching tabs doesn't hit Pantry's rate limit.
+const lc = (s) => String(s).toLowerCase();
+const monthStart = () => `${dateKey().slice(0, 8)}01`;
+const historyStart = () => addDays(monthStart(), -1).slice(0, 8) + '01'; // 1st of last month
+let history = null;
+let historyAt = 0;
+let historyLoading = null;
+
+function loadHistory({ maxAge = 15000 } = {}) {
+  if (history && Date.now() - historyAt < maxAge) return Promise.resolve(history);
+  if (historyLoading) return historyLoading;
+  historyLoading = fetchRows(GROUP, historyStart(), dateKey())
+    .then((rows) => { history = rows; historyAt = Date.now(); return rows; })
+    .finally(() => { historyLoading = null; });
+  return historyLoading;
+}
+
+// My results kept on this device for earlier days: { 'YYYY-MM-DD': { gameId: result } }.
+function myLocalDays() {
+  const prefix = `dgh.results.${modeTag}`;
+  const days = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    const date = k && k.startsWith(prefix) ? k.slice(prefix.length) : '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date !== dateKey()) days[date] = load(k, {});
+  }
+  return days;
+}
+
+// Days someone played (server history, plus this device's own record for me).
+function playedDates(nameLc) {
+  const dates = new Set((history || []).filter((r) => lc(r.name) === nameLc).map((r) => r.date));
+  if (nameLc === lc(profile.name)) {
+    for (const [date, res] of Object.entries(myLocalDays())) if (Object.keys(res).length) dates.add(date);
+    if (Object.keys(results).length) dates.add(dateKey());
+  }
+  return dates;
+}
+const streakFor = (nameLc) => streakOf(playedDates(nameLc), dateKey(), historyStart());
+const streakText = (st, long) => st.days < 2 ? '' : `🔥 ${st.days}${st.capped ? '+' : ''}${long ? '-day streak' : ''}`;
+
+// Best score before today in one game.
+function previousBest(nameLc, gameId) {
+  const values = (history || [])
+    .filter((r) => lc(r.name) === nameLc && r.game === gameId && r.date < dateKey())
+    .map((r) => r.value);
+  if (nameLc === lc(profile.name)) {
+    for (const res of Object.values(myLocalDays())) if (res[gameId]) values.push(res[gameId].value);
+  }
+  return bestOf(gameId, values);
+}
+const isMyNewBest = (gameId, value) => isNewBest(gameId, value, previousBest(lc(profile.name), gameId));
+
 // ---------- play tab ----------
 function renderPlay() {
   // Every game shows every day; you play whichever ones you feel like.
@@ -112,7 +168,7 @@ function renderPlay() {
     return `<li class="game ${r ? 'done' : ''}" data-game="${g.id}">
       <span class="em">${g.emoji}</span>
       <div class="info">
-        <div class="name">${g.name}${r ? '<span class="stamp">SOLVED</span>' : ''}</div>
+        <div class="name">${g.name}${r ? (isMyNewBest(g.id, r.value) ? '<span class="stamp best">NEW BEST</span>' : '<span class="stamp">SOLVED</span>') : ''}</div>
         <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
       ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>`}
@@ -156,7 +212,9 @@ async function handleText(text, { quiet = false } = {}) {
   for (const r of fresh) {
     document.querySelector(`.game[data-game="${r.game}"]`)?.classList.add('flash');
   }
-  toast(fresh.map((r) => `✓ ${GAME_BY_ID[r.game].name} ${r.label}`).join('  ·  ')
+  const bests = fresh.filter((r) => isMyNewBest(r.game, r.value)).map((r) => GAME_BY_ID[r.game].name);
+  toast((bests.length ? `🎉 New personal best in ${bests.join(', ')}!  ` : '')
+    + fresh.map((r) => `✓ ${GAME_BY_ID[r.game].name} ${r.label}`).join('  ·  ')
     + (old.length && !quiet ? `  (skipped old ${old.map((r) => GAME_BY_ID[r.game].name).join(', ')})` : ''));
   syncPending();
   return fresh.length;
@@ -175,6 +233,7 @@ async function syncPending() {
     })));
     for (const [, r] of pending) r.synced = true;
     saveResults();
+    historyAt = 0; // next leaderboard view re-downloads, so it includes these
   } catch {
     toast('Saved on this device. Leaderboard sync will retry later');
   }
@@ -218,12 +277,13 @@ function prettyDate(d = new Date()) {
 function buildSummary(format) {
   const played = GAMES.filter((g) => results[g.id]);
   const total = played.reduce((sum, g) => sum + pointsFor(g.id, results[g.id].value), 0);
-  const head = `🎮 ${profile.name || 'Me'} · ${prettyDate()} · ${played.length} game${played.length === 1 ? '' : 's'} · ${total} pts`;
+  const streak = streakText(streakFor(lc(profile.name)), true);
+  const head = `🎮 ${profile.name || 'Me'} · ${prettyDate()} · ${played.length} game${played.length === 1 ? '' : 's'} · ${total} pts${streak ? ` · ${streak}` : ''}`;
   if (!played.length) return '';
   if (format === 'full') {
     return [head, ...played.map((g) => results[g.id].full)].join('\n');
   }
-  return [head, ...played.map((g) => `${g.emoji} ${g.name}: ${results[g.id].label} · ${pointsFor(g.id, results[g.id].value)} pts`)].join('\n');
+  return [head, ...played.map((g) => `${g.emoji} ${g.name}: ${results[g.id].label} · ${pointsFor(g.id, results[g.id].value)} pts${isMyNewBest(g.id, results[g.id].value) ? ' · ⭐ new best' : ''}`)].join('\n');
 }
 
 function renderSummary() {
@@ -279,35 +339,32 @@ async function shareText(text) {
 }
 
 // ---------- leaderboard tab ----------
-const monthStart = () => `${dateKey().slice(0, 8)}01`;
-const lc = (s) => String(s).toLowerCase();
-
-let lastMonthRows = null; // last download, reused when you just switch the By Game view
-
-async function renderBoard({ refetch = true } = {}) {
+// refetch: true = Refresh button (always download); false = just switching views (reuse);
+// otherwise reuse a download from the last 15 s.
+async function renderBoard({ refetch } = {}) {
   const el = $('board');
-  let monthRows = lastMonthRows;
-  if (refetch || !monthRows) {
-    const request = ++boardRequest;
-    if (!el.innerHTML.trim()) el.innerHTML = '<div class="empty">Loading…</div>';
-    try {
-      // This month's scores: today's for the board, the rest to know who's in the group.
-      monthRows = await fetchRows(GROUP, monthStart(), dateKey());
-    } catch {
-      if (request === boardRequest) el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection and tap Refresh.</div>';
-      return;
-    }
-    if (request !== boardRequest) return; // a newer load started meanwhile
-    lastMonthRows = monthRows;
+  const request = ++boardRequest;
+  let all;
+  if (!el.innerHTML.trim()) el.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    all = await loadHistory({ maxAge: refetch === true ? 0 : refetch === false ? Infinity : 15000 });
+  } catch {
+    if (request === boardRequest) el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection and tap Refresh.</div>';
+    return;
   }
+  if (request !== boardRequest) return; // a newer load started meanwhile
   const today = dateKey();
+  const monthRows = all.filter((r) => r.date >= monthStart());
 
   // Everyone who has played this month (latest spelling of their name wins), and today's
   // scores with each name written that one way, so "Riya" and "riya" are one person.
   const roster = new Map();
-  for (const r of [...monthRows].sort((x, y) => (x.ts || 0) - (y.ts || 0))) roster.set(lc(r.name), r.name);
+  for (const r of [...all].sort((x, y) => (x.ts || 0) - (y.ts || 0))) roster.set(lc(r.name), r.name);
   if (profile.name) roster.set(lc(profile.name), profile.name);
-  const rows = monthRows.filter((r) => r.date === today).map((r) => ({ ...r, name: roster.get(lc(r.name)) }));
+  const canon = (r) => ({ ...r, name: roster.get(lc(r.name)) });
+  const rows = all.filter((r) => r.date === today).map(canon);
+  const inMonth = new Set(monthRows.map((r) => lc(r.name)));
+  if (profile.name) inMonth.add(lc(profile.name));
 
   // If any of my saved results didn't make it to the leaderboard, send them again.
   const mine = new Set(rows.filter((r) => lc(r.name) === lc(profile.name)).map((r) => r.game));
@@ -321,16 +378,22 @@ async function renderBoard({ refetch = true } = {}) {
 
   const { overall, games } = buildBoard(rows);
   const playedToday = new Set(overall.map((p) => lc(p.name)));
-  const waiting = [...roster.entries()].filter(([k]) => !playedToday.has(k)).map(([, n]) => n).sort();
+  const waiting = [...roster.entries()].filter(([k]) => inMonth.has(k) && !playedToday.has(k)).map(([, n]) => n).sort();
   const me = lc(profile.name);
   const total = GAMES.length;
 
+  // 0) Yesterday's winner, so the board isn't empty first thing in the morning.
+  const champ = championsOf(all.map(canon), addDays(today, -1));
+  let html = champ
+    ? `<p class="champ">🏆 Yesterday: <b>${champ.names.map(esc).join(' &amp; ')}</b>, ${champ.points} pts</p>`
+    : '';
+
   // 1) Standings, with how many games each person has played so far.
-  let html = `<div class="board-card"><h3>Today's Standings</h3>`;
+  html += `<div class="board-card"><h3>Today's Standings</h3>`;
   if (overall.length) {
     html += `<table class="standings">${overall.map((p) => `<tr class="${lc(p.name) === me ? 'me' : ''}">
       <td class="r">${p.rank}</td>
-      <td class="n"><span class="nm">${esc(p.name)}</span>
+      <td class="n"><span class="nm">${esc(p.name)}</span>${streakText(streakFor(lc(p.name))) ? `<span class="streak">${streakText(streakFor(lc(p.name)))}</span>` : ''}
         <span class="progress"><span class="mini-ticks">${'<i class="on"></i>'.repeat(p.played)}${'<i></i>'.repeat(Math.max(0, total - p.played))}</span>${p.played === total ? `all ${total} done` : `${p.played} of ${total} played`}</span>
       </td>
       <td class="v">${p.points} pts${p.wins ? `<span class="wins">best in ${p.wins}</span>` : ''}</td></tr>`).join('')}</table>`;
@@ -357,7 +420,8 @@ async function renderBoard({ refetch = true } = {}) {
         const cells = overall.map((o) => {
           const p = byName[o.name];
           if (!p) return '<td class="none">—</td>';
-          return `<td class="${p.rank === 1 ? 'best' : ''}">${esc(p.label)}<small>${p.points} pts</small></td>`;
+          const pb = isNewBest(g.id, p.value, previousBest(lc(p.name), g.id));
+          return `<td class="${p.rank === 1 ? 'best' : ''}">${esc(p.label)}<small>${p.points} pts${pb ? ' · ⭐ best' : ''}</small></td>`;
         }).join('');
         return `<tr><th class="g">${g.emoji} ${g.name}</th>${cells}</tr>`;
       }).join('');
@@ -369,10 +433,10 @@ async function renderBoard({ refetch = true } = {}) {
     } else {
       const g = GAME_BY_ID[boardView];
       const list = games[g.id];
-      const notYet = [...roster.entries()].filter(([k]) => !list.some((p) => lc(p.name) === k)).map(([, n]) => n).sort();
+      const notYet = [...roster.entries()].filter(([k]) => inMonth.has(k) && !list.some((p) => lc(p.name) === k)).map(([, n]) => n).sort();
       html += `<ol class="game-rank">${list.map((p) => `<li class="${p.rank === 1 ? 'best' : ''} ${lc(p.name) === me ? 'me' : ''}">
           <span class="r">${p.rank}</span>
-          <span class="who"><b>${esc(p.name)}</b><span class="lbl">${esc(p.label)}</span></span>
+          <span class="who"><b>${esc(p.name)}</b><span class="lbl">${esc(p.label)}${isNewBest(g.id, p.value, previousBest(lc(p.name), g.id)) ? ' <span class="pb">⭐ new best</span>' : ''}</span></span>
           <span class="bar" aria-hidden="true"><i style="width:${p.points}%"></i></span>
           <span class="pts">${p.points}</span>
         </li>`).join('')}</ol>`;
@@ -385,7 +449,11 @@ async function renderBoard({ refetch = true } = {}) {
   // Text version for the group chat.
   const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1] || `${rank}.`;
   const lines = [`🏆 DailyHub leaderboard · ${prettyDate()}`];
-  overall.forEach((p) => lines.push(`${medal(p.rank)} ${p.name}: ${p.points} pts (${p.played}/${total})`));
+  if (champ) lines.push(`👑 Yesterday: ${champ.names.join(' & ')}, ${champ.points} pts`);
+  overall.forEach((p) => {
+    const st = streakText(streakFor(lc(p.name)));
+    lines.push(`${medal(p.rank)} ${p.name}: ${p.points} pts (${p.played}/${total})${st ? ` ${st}` : ''}`);
+  });
   if (waiting.length) lines.push(`⏳ Not played yet: ${waiting.join(', ')}`);
   if (played.length) lines.push('');
   for (const g of played) {
@@ -432,7 +500,7 @@ function saveSettings(e) {
     }
     for (const r of Object.values(results)) r.synced = false;
     saveResults();
-    lastMonthRows = null;
+    historyAt = 0;
   }
   renderHeader();
   renderPlay();
@@ -443,6 +511,9 @@ function renderHeader() {
   const now = new Date();
   $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $('me-name').textContent = profile.name || 'Username';
+  const st = profile.name ? streakText(streakFor(lc(profile.name)), true) : '';
+  $('me-streak').textContent = st;
+  $('me-streak').hidden = !st;
 }
 
 // ---------- wire up ----------
@@ -553,4 +624,6 @@ renderHeader();
 renderPlay();
 syncPending();
 if (!profile.name) openSettings();
+// Streaks and personal bests need the score history: fetch it quietly in the background.
+loadHistory().then(() => { renderHeader(); renderPlay(); }).catch(() => {});
 checkForUpdate();
