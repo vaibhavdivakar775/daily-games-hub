@@ -111,6 +111,19 @@ b { font-weight: 600; }
   padding: 9px 0; border-bottom: 1px solid var(--rule);
 }
 
+/* ---------- welcome card (new users) ---------- */
+.welcome {
+  margin: 16px 0 4px; padding: 16px; background: var(--paper-2);
+  border: 1.5px solid var(--ink); border-left: 5px solid var(--orange);
+}
+.welcome h2 { margin: 0 0 6px; font: 900 22px/1.2 var(--display); }
+.welcome p { margin: 0 0 10px; font-size: 15px; color: var(--ink-soft); }
+.welcome ol { margin: 0 0 14px; padding-left: 20px; font-size: 15px; line-height: 1.45; }
+.welcome li { margin: 5px 0; }
+.welcome li::marker { color: var(--orange); font-weight: 800; }
+.welcome .btn { width: 100%; }
+dialog .intro { margin: -6px 0 16px; font: 15px/1.45 var(--sans); color: var(--ink-soft); }
+
 /* ---------- section headings ---------- */
 .section-head {
   display: flex; align-items: baseline; justify-content: space-between;

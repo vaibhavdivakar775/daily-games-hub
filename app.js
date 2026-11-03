@@ -408,6 +408,7 @@ $('scoring-list').innerHTML = GAMES.map((g) => `<li>${g.emoji} <b>${g.name}</b>:
 function openSettings() {
   const firstTime = !profile.name;
   $('settings-title').textContent = firstTime ? 'Pick a username' : 'Settings';
+  $('settings-intro').hidden = !firstTime;
   $('settings-save').textContent = firstTime ? "Let's play" : 'Save';
   $('clear-today').closest('.row').hidden = firstTime;
   $('set-name').value = profile.name;
@@ -540,6 +541,13 @@ document.addEventListener('visibilitychange', () => {
   autoPasteOnReturn();
 });
 window.addEventListener('focus', autoPasteOnReturn);
+
+// Welcome card: shown until dismissed, and never to someone who already has scores today.
+$('welcome').hidden = load('dgh.welcomeDone', false) || Object.keys(results).length > 0;
+$('welcome-ok').addEventListener('click', () => {
+  save('dgh.welcomeDone', true);
+  $('welcome').hidden = true;
+});
 
 renderHeader();
 renderPlay();
