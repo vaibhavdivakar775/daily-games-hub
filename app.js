@@ -349,11 +349,15 @@ function drawBoard(b, { fresh }) {
     }
   }
 
-  // Today's scores, with my own taken from this phone so a fresh paste shows up instantly.
+  // Today's scores. Games I've pasted on this phone use this phone's copy, so a fresh paste
+  // shows up instantly; my scores saved from another device still come from the server.
   const myRows = profile.name
     ? Object.entries(results).map(([game, r]) => ({ name: profile.name, date: today, game, value: r.value, label: r.label }))
     : [];
-  const rows = serverToday.filter((r) => lc(r.name) !== me).map(canon).concat(myRows);
+  const rows = serverToday
+    .filter((r) => !(lc(r.name) === me && results[r.game]))
+    .map(canon)
+    .concat(myRows);
 
   const { overall, games } = buildBoard(rows);
   const playedToday = new Set(overall.map((p) => lc(p.name)));

@@ -1,7 +1,7 @@
 # DailyHub
 
 One link for the group: play the daily games, paste each result, post **one** tidy message, and see a group leaderboard.
-It's free to host: a static site on GitHub Pages, with the leaderboard stored in [Pantry](https://getpantry.cloud), a free JSON store.
+It's free to host: a static site on Vercel, with the leaderboard in a free [Supabase](https://supabase.com) database (Mumbai region).
 
 ## How friends use it
 1. Open the link and enter your name. That's all the setup there is.
@@ -18,8 +18,10 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 | `games.js` | Game list (name, link, emoji) and the share-text parsers. **Add or edit games here.** |
 | `app.js` | The page: Play, Copy Results, Leaderboard, Settings |
 | `leaderboard.js` | Totals: every game's 0–100 points added up (formulas live in `games.js`) |
-| `storage.js` | Saves scores to Pantry, or to this browser in demo mode |
-| `config.js` | Your Pantry ID |
+| `storage.js` | Saves scores to Supabase, or to this browser in demo mode |
+| `config.js` | Supabase project URL + public (anon) key |
+| `supabase/schema.sql` | Database table, security rules and the `board()` leaderboard function |
+| `stats.js` | Streaks, personal bests, yesterday's champion |
 | `tests/` | `node tests/parsers.test.mjs` checks every parser against real share texts |
 
 ## Run locally
@@ -28,11 +30,13 @@ cd ~/daily-games-hub && python3 -m http.server 8787
 ```
 Then open http://localhost:8787. With `config.js` left empty it runs in **demo mode** with fake friends.
 
-## The shared leaderboard (Pantry)
-Scores live in a free [Pantry](https://getpantry.cloud) store. There's one basket per month (`squad-2026-11`), and each score is its own key (`2026-11-03|alex|wordle`), so friends saving at the same moment never overwrite each other.
-- To start a new Pantry: create one on getpantry.cloud (it has a CAPTCHA), then put its ID in `config.js`.
-- To view the raw data, open `https://getpantry.cloud/apiv1/pantry/<PANTRY_ID>/basket/squad-2026-11`.
-- With `PANTRY_ID` empty, the site runs in demo mode with fake friends.
+## The shared leaderboard (Supabase)
+- Project `dailyhub` (ref `vrlcdwzailluiboagkte`, region Mumbai), in the DailyHub organization on supabase.com.
+- One row per person, day and game in the `scores` table. Security rules only allow sensible scores
+  (the 8 games, names of 1–20 characters, dates within a day or two of today).
+- `board(group, today)` returns everything the leaderboard needs in one request, including all-time
+  streaks and personal bests. The app keeps the last result on the phone, so the leaderboard shows instantly.
+- To change the database: edit `supabase/schema.sql` and run it in the Supabase SQL editor (it's safe to re-run).
 - Add `?demo` to the URL to test in demo mode without touching the real leaderboard.
 
 ## Releasing an update
@@ -42,8 +46,9 @@ open or come back to the foreground, and reload themselves when a newer version 
 
 ## Backups
 `.github/workflows/backup.yml` runs every night at 23:55 India time (and on demand from the
-Actions tab → "Back up leaderboard" → Run workflow). It copies every Pantry basket into
-`backup/<basket>.json` and commits it, so the scores survive even if Pantry goes away.
+Actions tab → "Back up leaderboard" → Run workflow). It copies the whole `scores` table into
+`backup/scores.json` and commits it. It also keeps the free Supabase project from pausing
+(free projects pause after a week with no activity).
 
 ## Where it's hosted
 - **Main link (share this one): https://dailyhubgames.vercel.app**. Vercel republishes automatically on every push to `main`.

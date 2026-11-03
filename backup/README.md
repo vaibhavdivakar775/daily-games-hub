@@ -1,1 +1,1 @@
-Nightly copies of the leaderboard from Pantry (one file per month), made by .github/workflows/backup.yml.
+Nightly copy of the leaderboard (the Supabase scores table), made by .github/workflows/backup.yml.

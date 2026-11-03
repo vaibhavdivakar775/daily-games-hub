@@ -1,13 +1,13 @@
 // Leaderboard storage. Two backends with the same interface:
-//   remote (Pantry, a free JSON store at getpantry.cloud) when PANTRY_ID is set,
+//   remote (Supabase: table + board() function in supabase/schema.sql) when SUPABASE_URL is set,
 //   demo (this browser's localStorage, seeded with fake friends) otherwise.
 // Row shape: { group, name, date: 'YYYY-MM-DD', game, value, label, puzzle, ts }
-import { PANTRY_ID } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { GAMES } from './games.js';
-import { summarize, addDays } from './stats.js';
+import { summarize } from './stats.js';
 
 // ?demo in the URL forces demo mode, for testing without touching the real leaderboard.
-export const isDemo = !PANTRY_ID || new URLSearchParams(location.search).has('demo');
+export const isDemo = !SUPABASE_URL || new URLSearchParams(location.search).has('demo');
 
 export function dateKey(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
@@ -77,56 +77,32 @@ export function resetDemo() {
   try { localStorage.removeItem(DEMO_KEY); } catch {}
 }
 
-// ---------- Pantry backend ----------
-// One "basket" (a JSON object) per group per month, e.g. "squad-2026-11".
-// Each score is its own key, "2026-11-03|alex|wordle", and Pantry's PUT merges
-// keys into the basket, so two friends saving at once don't overwrite each other.
-// Removing a score sets its key to null.
-const API = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
-const basketName = (group, date) => `${group.toLowerCase()}-${date.slice(0, 7)}`;
-const rowKey = (r) => `${r.date}|${r.name.toLowerCase()}|${r.game}`;
+// ---------- Supabase backend ----------
+const REST = `${SUPABASE_URL}/rest/v1`;
+const HEADERS = {
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+};
 
-// Pantry rate-limits bursts. In a browser its "too many requests" reply arrives without CORS
-// headers, so fetch() throws instead of returning a 429; treat both as "wait and try again".
-async function pantryFetch(url, opts = {}) {
+// One retry for a dropped connection (e.g. phone switching networks); then give up.
+async function supa(path, opts = {}) {
   for (let attempt = 0; ; attempt++) {
-    let res = null;
-    let error = null;
-    try { res = await fetch(url, opts); } catch (e) { error = e; }
-    if (res && res.status !== 429) return res;
-    if (attempt === 5) {
-      if (res) return res;
-      throw error;
+    try {
+      const res = await fetch(REST + path, { ...opts, headers: { ...HEADERS, ...(opts.headers || {}) } });
+      if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+      return res;
+    } catch (e) {
+      if (attempt >= 1) throw e;
+      await new Promise((r) => setTimeout(r, 800));
     }
-    await new Promise((r) => setTimeout(r, 2000 + 1000 * attempt + Math.random() * 1000));
   }
 }
 
-async function pantryMerge(basket, patch) {
-  const opts = (method) => ({
-    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
-  });
-  let res = await pantryFetch(API + basket, opts('PUT'));
-  if (!res.ok) {
-    // First score of the month: the basket doesn't exist yet, so create it.
-    res = await pantryFetch(API + basket, opts('POST'));
-    if (!res.ok) throw new Error(`Pantry ${res.status}`);
-  }
-}
-
-async function pantryGet(basket) {
-  const res = await pantryFetch(API + basket, { cache: 'no-store' });
-  if (res.status === 400 || res.status === 404) return {}; // no scores this month yet
-  if (!res.ok) throw new Error(`Pantry ${res.status}`);
-  return res.json();
-}
-
-// Group rows by basket so a whole batch of results is one request per month.
-function byBasket(rows, toValue) {
-  const out = {};
-  for (const r of rows) (out[basketName(r.group, r.date)] ||= {})[rowKey(r)] = toValue(r);
-  return out;
-}
+const toDb = (r) => ({
+  grp: r.group.toLowerCase(), name_key: r.name.toLowerCase(), name: r.name, date: r.date,
+  game: r.game, value: r.value, label: r.label, puzzle: r.puzzle || '', ts: r.ts || Date.now(),
+});
 
 // ---------- public API ----------
 export async function submitResults(rows) {
@@ -136,9 +112,12 @@ export async function submitResults(rows) {
     demoSave([...all, ...rows]);
     return;
   }
-  for (const [basket, patch] of Object.entries(byBasket(rows, (r) => r))) {
-    await pantryMerge(basket, patch);
-  }
+  // Insert, or overwrite the same person/day/game if it's already there.
+  await supa('/scores?on_conflict=grp,name_key,date,game', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(rows.map(toDb)),
+  });
 }
 
 export async function removeResults(rows) {
@@ -147,41 +126,26 @@ export async function removeResults(rows) {
     demoSave(demoRows(rows[0].group).filter((r) => !rows.some((x) => same(r, x))));
     return;
   }
-  for (const [basket, patch] of Object.entries(byBasket(rows, () => null))) {
-    await pantryMerge(basket, patch);
+  // One request per person/day, removing all the given games at once.
+  const byDay = {};
+  for (const r of rows) (byDay[`${r.group.toLowerCase()}|${r.name.toLowerCase()}|${r.date}`] ||= []).push(r.game);
+  for (const [k, games] of Object.entries(byDay)) {
+    const [grp, nameKey, date] = k.split('|');
+    const q = `grp=eq.${encodeURIComponent(grp)}&name_key=eq.${encodeURIComponent(nameKey)}&date=eq.${date}&game=in.(${games.join(',')})`;
+    await supa(`/scores?${q}`, { method: 'DELETE' });
   }
 }
 
-export async function fetchRows(group, from, to) {
-  if (isDemo) {
-    return demoRows(group).filter(
-      (r) => r.group.toLowerCase() === group.toLowerCase() && r.date >= from && r.date <= to
-    );
-  }
-  const months = [...new Set([from.slice(0, 7), to.slice(0, 7)])];
-  const baskets = await Promise.all(months.map((m) => pantryGet(`${group.toLowerCase()}-${m}`)));
-  return baskets
-    .flatMap((b) => Object.values(b))
-    .filter((r) => r && r.date && r.date >= from && r.date <= to); // skips _metadata and removed scores
-}
-
-// The leaderboard summary (see summarize() in stats.js), in as few requests as possible:
-// this month's scores (1 request), plus last month's only when it's needed, i.e. today is
-// the 1st (yesterday's champion lives in last month) or someone's streak reaches back past
-// the 1st.
+// The leaderboard summary (see summarize() in stats.js) in one request: the database's
+// board() function builds it, with all-time streaks and personal bests.
 export async function fetchBoard(group, today) {
   if (isDemo) {
     const rows = demoRows(group).filter((r) => r.group.toLowerCase() === group.toLowerCase());
     return summarize(rows, today, '0000-00-00');
   }
-  const monthStart = `${today.slice(0, 8)}01`;
-  let rows = await fetchRows(group, monthStart, today);
-  let summary = summarize(rows, today, monthStart);
-  const needLastMonth = today === monthStart || Object.values(summary.streaks).some((s) => s.capped);
-  if (needLastMonth) {
-    const lastMonthStart = `${addDays(monthStart, -1).slice(0, 8)}01`;
-    rows = rows.concat(await fetchRows(group, lastMonthStart, addDays(monthStart, -1)));
-    summary = summarize(rows, today, lastMonthStart);
-  }
-  return summary;
+  const res = await supa('/rpc/board', {
+    method: 'POST',
+    body: JSON.stringify({ p_grp: group.toLowerCase(), p_today: today }),
+  });
+  return res.json();
 }

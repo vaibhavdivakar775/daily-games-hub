@@ -1,5 +1,6 @@
-# Nightly backup of the leaderboard: copies every Pantry basket (one per month)
-# into backup/<basket>.json in this repo. Free; runs on GitHub's servers.
+# Nightly backup of the leaderboard: copies the whole Supabase `scores` table into
+# backup/scores.json in this repo. Free; runs on GitHub's servers. The daily request also
+# keeps the free Supabase project from pausing for inactivity.
 name: Back up leaderboard
 
 on:
@@ -20,21 +21,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download every basket from Pantry
+      - name: Download every score from Supabase
         run: |
           set -euo pipefail
-          PANTRY_ID=$(grep -oE "PANTRY_ID = '[^']+'" config.js | cut -d"'" -f2)
-          API="https://getpantry.cloud/apiv1/pantry/$PANTRY_ID"
-          # Pantry rate-limits bursts (HTTP 429): curl retries those, and we pause between calls.
-          get() { curl -sS --fail --retry 6 --retry-delay 5 --retry-all-errors "$1"; }
-          baskets=$(get "$API" | jq -r '.baskets[].name')
+          URL=$(grep -oE "SUPABASE_URL = '[^']+'" config.js | cut -d"'" -f2)
+          KEY=$(grep -oE "SUPABASE_ANON_KEY = '[^']+'" config.js | cut -d"'" -f2)
           mkdir -p backup
-          for b in $baskets; do
-            sleep 3
-            get "$API/basket/$b" | jq -S 'del(._metadata)' > "backup/$b.json.tmp"
-            mv "backup/$b.json.tmp" "backup/$b.json"   # only replace once the download is complete
-            echo "saved backup/$b.json ($(jq 'length' "backup/$b.json") entries)"
+          echo '[]' > backup/scores.json.tmp
+          # The API returns at most 1000 rows per request, so page through the table.
+          offset=0
+          while :; do
+            page=$(curl -sS --fail --retry 4 --retry-delay 5 --retry-all-errors \
+              -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+              "$URL/rest/v1/scores?select=*&order=date,grp,name_key,game&limit=1000&offset=$offset")
+            n=$(echo "$page" | jq 'length')
+            jq -s '.[0] + .[1]' backup/scores.json.tmp <(echo "$page") > backup/merged.tmp && mv backup/merged.tmp backup/scores.json.tmp
+            [ "$n" -lt 1000 ] && break
+            offset=$((offset + 1000))
           done
+          mv backup/scores.json.tmp backup/scores.json   # only replace once the download is complete
+          echo "saved backup/scores.json ($(jq 'length' backup/scores.json) scores)"
 
       - name: Commit if anything changed
         run: |
