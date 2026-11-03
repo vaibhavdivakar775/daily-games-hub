@@ -9,21 +9,24 @@
   <title>DailyHub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
 <body>
-  <header class="topbar">
+  <header class="masthead">
+    <div class="edition">
+      <span id="edition-no"></span>
+      <button class="byline" id="open-settings" aria-label="Change your name"><span id="me-name"></span> ✎</button>
+    </div>
     <h1 class="logo" aria-label="DailyHub"><span>Daily</span><b>Hub</b></h1>
-    <button class="byline" id="open-settings" aria-label="Change your name"><span id="me-name"></span> ✎</button>
+    <div class="dateline" id="today-label"></div>
   </header>
-  <div class="dateline" id="today-label"></div>
 
   <div class="note" id="demo-banner" hidden>
-    <b>Demo mode:</b> Scores stay on this device, and Aarav, Riya and Kabir are made up.
+    <b>Editor's note:</b> demo mode. Scores stay on this device, and Aarav, Riya and Kabir are made up.
   </div>
 
   <main>

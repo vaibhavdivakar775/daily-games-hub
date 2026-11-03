@@ -80,7 +80,7 @@ function renderPlay() {
     return `<li class="game ${r ? 'done' : ''}" data-game="${g.id}">
       <span class="em">${g.emoji}</span>
       <div class="info">
-        <div class="name">${g.name}${r ? '<span class="stamp">Solved</span>' : ''}</div>
+        <div class="name">${g.name}${r ? '<span class="stamp">SOLVED</span>' : ''}</div>
         <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
       ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>`}
@@ -318,6 +318,9 @@ function saveSettings(e) {
 
 function renderHeader() {
   const now = new Date();
+  // Edition number = day of the year, like a paper's issue number.
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  $('edition-no').textContent = `No. ${dayOfYear} · Vol. ${now.getFullYear()}`;
   $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $('me-name').textContent = profile.name || 'Set name';
   $('demo-banner').hidden = !isDemo;
