@@ -27,7 +27,7 @@ let results = load(resultsKey(), {}); // { gameId: { label, value, puzzle, full,
 let boardText = '';
 let healed = false;
 let boardRequest = 0; // so a slow leaderboard load can't overwrite a newer one
-let boardView = load('dgh.boardView', ''); // which game the "By game" section shows ('' = first played, 'grid' = full grid)
+let boardView = load('dgh.boardView', 'grid'); // "By game" view: 'grid' = All games (the default), or a game id
 
 const saveResults = () => save(resultsKey(), results);
 
@@ -390,9 +390,9 @@ function drawBoard(b, { fresh }) {
   // 2) By game: pick a game to see everyone's score in it, or the full grid.
   const played = GAMES.filter((g) => games[g.id]);
   if (played.length) {
-    if (boardView !== 'grid' && !games[boardView]) boardView = played[0].id;
-    const chips = GAMES.map((g) => `<button class="chip ${boardView === g.id ? 'on' : ''}" data-view="${g.id}" ${games[g.id] ? '' : 'disabled'}>${g.emoji} ${g.name}</button>`).join('')
-      + `<button class="chip ${boardView === 'grid' ? 'on' : ''}" data-view="grid">▦ All games</button>`;
+    if (boardView !== 'grid' && !games[boardView]) boardView = 'grid'; // nobody's played that game yet today
+    const chips = `<button class="chip ${boardView === 'grid' ? 'on' : ''}" data-view="grid">▦ All games</button>`
+      + GAMES.map((g) => `<button class="chip ${boardView === g.id ? 'on' : ''}" data-view="${g.id}" ${games[g.id] ? '' : 'disabled'}>${g.emoji} ${g.name}</button>`).join('');
     html += `<div class="board-card"><h3>By Game</h3><div class="chips" role="tablist">${chips}</div>`;
 
     if (boardView === 'grid') {
