@@ -142,9 +142,6 @@ function renderPlay() {
   $('total-count').textContent = games.length;
   $('ticks').innerHTML = games.map((g) => `<i class="${results[g.id] ? 'on' : ''}"></i>`).join('');
 
-  $('copy-bar').hidden = done === 0;
-  $('copy-all').textContent = `Copy results (${done})`;
-
   $('game-list').innerHTML = games.map((g) => {
     const r = results[g.id];
     return `<li class="game ${r ? 'done' : ''}" data-game="${g.id}">
@@ -537,7 +534,6 @@ for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('c
 for (const b of document.querySelectorAll('[data-format]')) {
   b.addEventListener('click', () => { profile.summaryFormat = b.dataset.format; save(PROFILE_KEY, profile); renderSummary(); });
 }
-$('copy-all').addEventListener('click', () => copyText(buildSummary(profile.summaryFormat), 'Copied! Paste it into any chat'));
 $('copy-summary').addEventListener('click', () => copyText(buildSummary(profile.summaryFormat), 'Copied! Paste it into the group chat'));
 $('share-summary').addEventListener('click', () => shareText(buildSummary(profile.summaryFormat)));
 $('refresh-board').addEventListener('click', renderBoard);

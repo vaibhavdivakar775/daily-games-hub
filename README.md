@@ -9,7 +9,7 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 3. In the game, tap **Share** (on iPhone pick **Copy** if a share sheet appears).
 4. Come back and tap **Paste** next to it. DailyHub works out which game the result is from.
    You can also paste several results at once, or a whole WhatsApp chunk.
-5. Tap **Copy results** at the bottom whenever you like, and paste it into any chat. The **Copy Results** tab also has Send to WhatsApp and a Compact option.
+5. Tap the orange **Copy final results** button at the bottom: copy your results, or send them straight to WhatsApp.
 6. **Leaderboard** shows today's standings (with how many games each person has played and who hasn't played yet), a per-game ranking, and the full grid. **Send to WhatsApp** opens WhatsApp with the message typed in.
 
 ## Files
