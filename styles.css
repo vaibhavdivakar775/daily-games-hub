@@ -1,0 +1,214 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --text: #15181d;
+  --muted: #69717d;
+  --line: #e3e6ea;
+  --accent: #16a34a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e7f6ec;
+  --warn-soft: #fff6db;
+  --gold: #d4a017;
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --card: #191c22;
+    --text: #eceef1;
+    --muted: #9aa1ab;
+    --line: #2a2f37;
+    --accent: #22c55e;
+    --accent-ink: #06210f;
+    --accent-soft: #14301f;
+    --warn-soft: #3a3115;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+main { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+button, input, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+.top {
+  max-width: 560px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 10px;
+}
+.top h1 { font-size: 22px; margin: 0; }
+.sub { color: var(--muted); font-size: 14px; }
+.chip {
+  border: 1px solid var(--line); background: var(--card);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.demo-banner {
+  max-width: 528px; margin: 0 auto 10px; padding: 8px 12px;
+  background: var(--warn-soft); border-radius: 10px; font-size: 13px;
+}
+
+.install-tip {
+  max-width: 528px; margin: 0 auto 10px; padding: 8px 8px 8px 12px;
+  background: var(--accent-soft); border-radius: 10px; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+}
+@media (max-width: 560px) { .demo-banner, .install-tip { margin-left: 16px; margin-right: 16px; } }
+.install-tip span { flex: 1; }
+.install-tip .btn { flex: 0; min-width: 0; padding: 6px 12px; }
+.install-tip .x { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+.progress { margin: 4px 0 12px; }
+.progress-text { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+.bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+#bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+
+.paste-btn, .next-btn {
+  display: block; width: 100%; text-align: center; text-decoration: none;
+  border: 0; border-radius: var(--radius); padding: 16px; cursor: pointer;
+  font-size: 18px; font-weight: 650;
+}
+.paste-btn { background: var(--accent); color: var(--accent-ink); }
+.paste-btn:active { transform: scale(.98); }
+.next-btn {
+  background: var(--card); color: var(--text); border: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.next-btn.all-done { background: var(--accent-soft); }
+.next-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.next-row .next-btn { margin-bottom: 0; flex: 1; min-width: 0; }
+.skip-btn {
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: var(--radius); padding: 0 16px; cursor: pointer; font-weight: 600;
+}
+.hint { color: var(--muted); font-size: 13px; margin: 8px 2px 12px; }
+
+.manual { margin-bottom: 14px; font-size: 14px; }
+.manual summary { cursor: pointer; color: var(--muted); }
+.manual textarea {
+  width: 100%; margin: 8px 0; padding: 10px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card); resize: vertical;
+}
+
+.games { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.game {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.game.done { border-color: var(--accent); background: var(--accent-soft); }
+.game .em { font-size: 26px; width: 34px; text-align: center; }
+.game .info { flex: 1; min-width: 0; }
+.game .name { font-weight: 600; }
+.game .score { font-size: 14px; color: var(--muted); }
+.game.done .score { color: var(--text); font-weight: 600; }
+.game a.play {
+  text-decoration: none; background: var(--accent); color: var(--accent-ink);
+  border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: 14px; white-space: nowrap;
+}
+.game.done a.play { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.game .x {
+  border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 6px;
+}
+.game.flash { animation: flash .9s; }
+@keyframes flash { 0% { box-shadow: 0 0 0 4px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.seg {
+  display: flex; background: var(--line); border-radius: 12px; padding: 3px; margin: 4px 0 12px;
+}
+.seg button {
+  flex: 1; border: 0; background: none; padding: 8px; border-radius: 9px; cursor: pointer; color: var(--muted);
+}
+.seg button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
+
+.summary {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px; white-space: pre-wrap; word-break: break-word;
+  font-family: inherit; font-size: 13px; line-height: 1.35;
+  /* Preview scrolls inside its own box so the page itself never needs to. */
+  max-height: 38vh; overflow-y: auto; margin: 0 0 12px;
+}
+.copy-row { margin-top: 0; }
+.copy-row .btn.primary { flex: 2; font-size: 16px; padding: 14px; }
+.copy-row .btn.share { flex: 1; min-width: 0; }
+.preview-label { font-size: 12px; color: var(--muted); margin: 4px 2px 6px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.btn {
+  flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 12px;
+  padding: 12px; cursor: pointer; font-weight: 600; min-width: 120px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.board-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.board-card h3 { margin: 0 0 8px; font-size: 16px; }
+.board-card table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.board-card td { padding: 5px 0; border-top: 1px solid var(--line); }
+.board-card tr:first-child td { border-top: 0; }
+.board-card td.r { width: 34px; color: var(--muted); }
+.board-card td.v { text-align: right; font-weight: 600; white-space: nowrap; }
+.board-card tr.me td { color: var(--accent); }
+.board-card.overall { border-color: var(--gold); }
+.board-card .wins { color: var(--muted); font-weight: 400; }
+.grid-scroll { overflow-x: auto; margin: 0 -14px; padding: 0 14px; }
+.board-card table.grid { width: auto; min-width: 100%; font-size: 14px; }
+.grid th, .grid td { padding: 7px 8px; white-space: nowrap; text-align: center; border-top: 1px solid var(--line); }
+.grid thead th { border-top: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+.grid thead th.me { color: var(--accent); }
+.grid th.g {
+  position: sticky; left: 0; z-index: 1; background: var(--card);
+  text-align: left; font-weight: 600; padding-left: 0;
+}
+.grid td.best { background: var(--accent-soft); font-weight: 700; border-radius: 6px; }
+.grid td.none { color: var(--muted); }
+.grid td small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+.game .pts { color: var(--muted); font-weight: 500; }
+.scoring { font-size: 14px; margin: 8px 2px 16px; }
+.scoring summary { cursor: pointer; color: var(--muted); }
+.scoring ul { padding-left: 18px; margin: 6px 0 0; }
+.scoring li { margin: 4px 0; }
+.grid tr.total th, .grid tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
+.empty { color: var(--muted); text-align: center; padding: 30px 0; }
+
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; background: var(--card); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabs button {
+  flex: 1; border: 0; background: none; padding: 8px 0 10px; cursor: pointer;
+  color: var(--muted); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.tabs button span { font-size: 22px; }
+.tabs button.on { color: var(--accent); font-weight: 600; }
+
+dialog {
+  border: 0; border-radius: 18px; padding: 0; width: min(440px, calc(100% - 32px));
+  background: var(--card); color: var(--text);
+}
+dialog::backdrop { background: rgb(0 0 0 / .45); }
+dialog form { padding: 18px; }
+dialog h2 { margin: 0 0 12px; }
+dialog label { display: block; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+dialog input:not([type]), dialog input[type=text] {
+  display: block; width: 100%; margin-top: 4px; padding: 10px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 16px;
+}
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 12px;
+  font-size: 15px; transition: .25s; max-width: calc(100% - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
