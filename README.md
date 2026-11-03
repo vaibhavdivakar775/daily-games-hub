@@ -1,4 +1,4 @@
-# 🎮 Daily Games Hub
+# DailyHub
 
 One link for the group: play the daily games, paste each result, post **one** tidy message, and see a group leaderboard.
 It's free to host: a static site on GitHub Pages, with the leaderboard stored in [Pantry](https://getpantry.cloud), a free JSON store.
@@ -33,6 +33,7 @@ Scores live in a free [Pantry](https://getpantry.cloud) store. There's one baske
 - To start a new Pantry: create one on getpantry.cloud (it has a CAPTCHA), then put its ID in `config.js`.
 - To view the raw data, open `https://getpantry.cloud/apiv1/pantry/<PANTRY_ID>/basket/squad-2026-11`.
 - With `PANTRY_ID` empty, the site runs in demo mode with fake friends.
+- Add `?demo` to the URL to test in demo mode without touching the real leaderboard.
 
 ## Put it online (GitHub Pages, free)
 1. Create a public GitHub repo named `daily-games-hub` and push this folder to it.

@@ -5,7 +5,8 @@
 import { PANTRY_ID } from './config.js';
 import { GAMES } from './games.js';
 
-export const isDemo = !PANTRY_ID;
+// ?demo in the URL forces demo mode, for testing without touching the real leaderboard.
+export const isDemo = !PANTRY_ID || new URLSearchParams(location.search).has('demo');
 
 export function dateKey(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');

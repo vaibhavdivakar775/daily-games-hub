@@ -62,11 +62,13 @@ function renderPlay() {
   if (next) {
     nb.href = next.url;
     nb.target = '_blank';
-    nb.innerHTML = `<small>${done ? 'Next up' : 'Start with'}</small>${next.name} ↗`;
+    nb.dataset.game = next.id;
+    nb.innerHTML = `<small>${done ? 'Next up' : 'Start with'}</small>${next.name}`;
     nb.classList.remove('all-done');
   } else {
     nb.removeAttribute('href');
     nb.removeAttribute('target');
+    delete nb.dataset.game;
     nb.innerHTML = done === games.length
       ? '<small>All eight solved</small>Copy your results →'
       : '<small>Done for today?</small>Copy your results →';
@@ -78,10 +80,10 @@ function renderPlay() {
     return `<li class="game ${r ? 'done' : ''}" data-game="${g.id}">
       <span class="em">${g.emoji}</span>
       <div class="info">
-        <div class="name">${g.name}${r ? '<span class="stamp">SOLVED</span>' : ''}</div>
+        <div class="name">${g.name}${r ? '<span class="stamp">Solved</span>' : ''}</div>
         <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
-      <a class="play" href="${g.url}" target="_blank" rel="noopener">${r ? 'Open' : 'Play ↗'}</a>
+      ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>`}
       ${r ? `<button class="x" data-remove="${g.id}" aria-label="Remove ${g.name} result">✕</button>` : ''}
     </li>`;
   }).join('');
@@ -138,19 +140,21 @@ async function syncPending() {
   }
 }
 
+// Returns how many results were saved (0 if none).
 async function pasteFromClipboard() {
   try {
     const text = await navigator.clipboard.readText();
     if (!text.trim()) {
       toast('Clipboard is empty. Tap Share in the game first');
-      return;
+      return 0;
     }
-    await handleText(text);
+    return await handleText(text);
   } catch {
     // Firefox / denied permission / older iOS: fall back to the manual box.
     $('manual').open = true;
     $('manual-text').focus();
     toast('Long-press the box and tap Paste');
+    return 0;
   }
 }
 
@@ -274,7 +278,7 @@ async function renderBoard() {
   el.innerHTML = html;
 
   // Text version for the group chat: standings, then every game best-first.
-  const lines = [`🏆 Leaderboard · ${prettyDate()}`];
+  const lines = [`🏆 DailyHub leaderboard · ${prettyDate()}`];
   overall.forEach((p) => lines.push(`${medal(p.rank)} ${p.name}: ${p.points} pts`));
   lines.push('');
   for (const g of played) {
@@ -314,11 +318,8 @@ function saveSettings(e) {
 
 function renderHeader() {
   const now = new Date();
-  // Edition number = day of the year, like a paper's issue number.
-  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-  $('edition-no').textContent = `No. ${dayOfYear} · Vol. ${now.getFullYear()}`;
   $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  $('me-name').textContent = profile.name || 'Sign in';
+  $('me-name').textContent = profile.name || 'Set name';
   $('demo-banner').hidden = !isDemo;
 }
 
@@ -330,17 +331,19 @@ $('manual-add').addEventListener('click', async () => {
     $('manual').open = false;
   }
 });
-// Always open games in a new tab so the hub stays put. target=_blank alone isn't
-// honoured everywhere (in-app browsers, some home-screen web apps), so open it ourselves.
-function openGame(e, url) {
+// Always open games in a new tab so DailyHub stays put. window.open instead of
+// target=_blank, which isn't honoured everywhere (in-app browsers, home-screen apps).
+function openGame(e, gameId) {
   e.preventDefault();
+  const url = GAME_BY_ID[gameId].url;
   const w = window.open(url, '_blank');
   if (w) w.opener = null;
   else location.href = url; // popup blocked: at least get them to the game
 }
+
 $('next-btn').addEventListener('click', (e) => {
-  const url = $('next-btn').getAttribute('href');
-  if (url) return openGame(e, url);
+  const id = $('next-btn').dataset.game;
+  if ($('next-btn').getAttribute('href') && id) return openGame(e, id);
   e.preventDefault();
   showTab('summary');
 });
@@ -353,7 +356,7 @@ $('skip-btn').addEventListener('click', () => {
 });
 $('game-list').addEventListener('click', async (e) => {
   const link = e.target.closest('a.play');
-  if (link) return openGame(e, link.href);
+  if (link) return openGame(e, link.closest('.game').dataset.game);
   const id = e.target.dataset?.remove;
   if (!id) return;
   const r = results[id];
