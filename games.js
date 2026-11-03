@@ -182,3 +182,43 @@ export function compare(gameId, a, b) {
   const g = GAME_BY_ID[gameId];
   return g.better === 'high' ? b - a : a - b;
 }
+
+// ---------- is this today's puzzle? ----------
+// Returns how many days old a parsed result is (0 = today, 1 = yesterday, …), or null when
+// the share text doesn't tell us. Used to stop an old result left on the clipboard from being
+// saved as today's. Only games whose share text has a date, or whose puzzle numbers follow a
+// known daily schedule, are checked. Wordle and Connections numbering is well known; Farflung
+// and Krillion come from real shares (#29/#30 and #109/#110 on 2 and 3 Nov 2026). Perceptle
+// isn't checked: one sample isn't enough to be sure of its schedule.
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const dayNumber = (y, m, d) => Math.floor(Date.UTC(y, m, d) / 86400000);
+
+function parseDate(text, now) {
+  const month = MONTHS.findIndex((m) => new RegExp(`\\b${m}[a-z]*\\b`, 'i').test(text));
+  const day = text.match(/\b(\d{1,2})\b/);
+  if (month < 0 || !day) return null;
+  const year = text.match(/\b(20\d\d)\b/);
+  let y = year ? Number(year[1]) : now.getFullYear();
+  // No year given (Maptap): a December puzzle seen in January belongs to last year.
+  if (!year && month > now.getMonth() + 6) y -= 1;
+  return dayNumber(y, month, Number(day[1]));
+}
+
+export function daysOld(gameId, puzzle, now = new Date()) {
+  const today = dayNumber(now.getFullYear(), now.getMonth(), now.getDate());
+  const p = String(puzzle || '');
+  const n = num(p.replace('#', ''));
+  switch (gameId) {
+    case 'wordle': return p && Number.isFinite(n) ? (today - dayNumber(2021, 5, 19)) - n : null;
+    case 'connections': return p && Number.isFinite(n) ? (today - dayNumber(2023, 5, 12) + 1) - n : null;
+    case 'farflung': return p && Number.isFinite(n) ? (today - dayNumber(2026, 10, 3) + 30) - n : null;
+    case 'krillion': return p && Number.isFinite(n) ? (today - dayNumber(2026, 10, 3) + 110) - n : null;
+    case 'maptap':
+    case 'globle':
+    case 'cryptic': {
+      const d = parseDate(p, now);
+      return d === null ? null : today - d;
+    }
+    default: return null;
+  }
+}

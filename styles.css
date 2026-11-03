@@ -206,10 +206,16 @@ b { font-weight: 600; }
 .btn.primary { background: var(--orange); border-color: var(--orange); color: var(--on-orange); }
 .btn:active { opacity: .85; }
 .board-row .btn:first-child { flex: 0 0 auto; min-width: 0; padding: 12px 18px; }
-.board-row .btn.primary { white-space: nowrap; }
+.board-row .btn:last-child { white-space: nowrap; }
 .copy-row { margin-top: 0; }
-.copy-row .btn.primary { flex: 2; padding: 14px; font-size: 19px; font-weight: 900; }
-.copy-row .btn.share { flex: 1; min-width: 0; }
+/* WhatsApp green so it's recognisable at a glance, in both themes */
+.btn.wa {
+  display: flex; align-items: center; justify-content: center; gap: 9px; text-decoration: none;
+  background: #25d366; border-color: #25d366; color: #0b2e17; padding: 14px; font-size: 18px; font-weight: 900;
+}
+.btn.wa svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
+.btn.wa:active { background: #1ebe5b; }
+.btn.wa.disabled { opacity: .45; }
 
 /* ---------- results preview: a clipped slip of paper ---------- */
 .preview-label { font-size: 12px; font-weight: 600; color: var(--muted); margin: 6px 0; }
@@ -236,6 +242,48 @@ b { font-weight: 600; }
 .standings td.v { text-align: right; font: 700 17px var(--sans); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .standings .wins { display: block; font: 500 12px var(--sans); color: var(--muted); }
 .standings tr.me td.n::after { content: " (you)"; font: 500 14px var(--sans); color: var(--orange); }
+
+/* how many of today's games each person has played */
+.standings .progress {
+  display: flex; align-items: center; gap: 7px; margin-top: 4px;
+  font: 500 12.5px var(--sans); color: var(--muted);
+}
+.mini-ticks { display: inline-flex; gap: 2px; }
+.mini-ticks i { width: 7px; height: 7px; border: 1px solid var(--muted); }
+.mini-ticks i.on { background: var(--orange); border-color: var(--orange); }
+.waiting { margin: 10px 0 0; font: 14px/1.45 var(--sans); color: var(--muted); }
+.waiting b { color: var(--ink-soft); font-weight: 600; }
+
+/* game picker: one chip per game (greyed out if nobody has played it), plus the full grid */
+.chips {
+  display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 10px; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; cursor: pointer; white-space: nowrap;
+  border: 1.5px solid var(--rule); background: none; color: var(--ink-soft);
+  padding: 7px 12px; border-radius: 999px; font: 600 14px var(--sans);
+}
+.chip.on { background: var(--orange); border-color: var(--orange); color: var(--on-orange); }
+.chip:disabled { opacity: .35; cursor: default; }
+
+/* one game's ranking: rank, name + score, a 0–100 points bar, points */
+.game-rank { list-style: none; margin: 0; padding: 0; }
+.game-rank li {
+  display: grid; grid-template-columns: 30px 1fr 70px 34px; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px dotted var(--rule);
+}
+.game-rank .r { font: italic 900 20px var(--display); color: var(--muted); }
+.game-rank li.best .r { color: var(--orange); }
+.game-rank .who { min-width: 0; }
+.game-rank .who b { display: block; font: 700 18px/1.2 var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-rank .lbl { display: block; font: 500 14px var(--sans); color: var(--ink-soft); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.game-rank li.best .lbl { color: var(--orange); font-weight: 700; }
+.game-rank .bar { height: 8px; background: var(--paper-2); border: 1px solid var(--rule); }
+.game-rank .bar i { display: block; height: 100%; background: var(--orange); }
+.game-rank .pts { text-align: right; font: 800 16px var(--sans); font-variant-numeric: tabular-nums; }
+.game-rank li.me .who b::after { content: " (you)"; font: 500 13px var(--sans); color: var(--orange); }
 
 .grid-scroll { overflow-x: auto; }
 .board-card table.grid { width: auto; min-width: 100%; }

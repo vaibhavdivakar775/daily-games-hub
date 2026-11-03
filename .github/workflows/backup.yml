@@ -1,0 +1,49 @@
+# Nightly backup of the leaderboard: copies every Pantry basket (one per month)
+# into backup/<basket>.json in this repo. Free; runs on GitHub's servers.
+name: Back up leaderboard
+
+on:
+  schedule:
+    - cron: '25 18 * * *'   # 23:55 India time, after the day's games
+  workflow_dispatch:         # "Run workflow" button for a manual backup
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download every basket from Pantry
+        run: |
+          set -euo pipefail
+          PANTRY_ID=$(grep -oE "PANTRY_ID = '[^']+'" config.js | cut -d"'" -f2)
+          API="https://getpantry.cloud/apiv1/pantry/$PANTRY_ID"
+          # Pantry rate-limits bursts (HTTP 429): curl retries those, and we pause between calls.
+          get() { curl -sS --fail --retry 6 --retry-delay 5 --retry-all-errors "$1"; }
+          baskets=$(get "$API" | jq -r '.baskets[].name')
+          mkdir -p backup
+          for b in $baskets; do
+            sleep 3
+            get "$API/basket/$b" | jq -S 'del(._metadata)' > "backup/$b.json.tmp"
+            mv "backup/$b.json.tmp" "backup/$b.json"   # only replace once the download is complete
+            echo "saved backup/$b.json ($(jq 'length' "backup/$b.json") entries)"
+          done
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name "dailyhub-backup"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backup
+          if git diff --cached --quiet; then
+            echo "No changes since the last backup."
+          else
+            git commit -m "Leaderboard backup $(date -u +%Y-%m-%d)"
+            git push
+          fi

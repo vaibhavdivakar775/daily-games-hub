@@ -10,7 +10,7 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 4. Come back and tap **📋 Paste result**. The hub works out which game it was by itself.
    You can also paste several results at once, or a whole WhatsApp chunk.
 5. When you're done, open **Copy Results**, pick Original or Compact, then tap **Copy for group chat** or **Share…**.
-6. **Leaderboard** shows today's totals and every friend's score in every game, with the best one per game marked 🥇.
+6. **Leaderboard** shows today's standings (with how many games each person has played and who hasn't played yet), a per-game ranking, and the full grid. **Send to WhatsApp** opens WhatsApp with the message typed in.
 
 ## Files
 | File | What it does |
@@ -34,6 +34,16 @@ Scores live in a free [Pantry](https://getpantry.cloud) store. There's one baske
 - To view the raw data, open `https://getpantry.cloud/apiv1/pantry/<PANTRY_ID>/basket/squad-2026-11`.
 - With `PANTRY_ID` empty, the site runs in demo mode with fake friends.
 - Add `?demo` to the URL to test in demo mode without touching the real leaderboard.
+
+## Releasing an update
+Run `node tools/release.mjs` before every push. It stamps a new version on every file in
+`index.html` and in `version.json`. Open copies of DailyHub check `version.json` when they
+open or come back to the foreground, and reload themselves when a newer version is out.
+
+## Backups
+`.github/workflows/backup.yml` runs every night at 23:55 India time (and on demand from the
+Actions tab → "Back up leaderboard" → Run workflow). It copies every Pantry basket into
+`backup/<basket>.json` and commits it, so the scores survive even if Pantry goes away.
 
 ## Put it online (GitHub Pages, free)
 1. Create a public GitHub repo named `daily-games-hub` and push this folder to it.

@@ -1,6 +1,6 @@
-import { GAMES, GAME_BY_ID, parseAll } from './games.js';
+import { GAMES, GAME_BY_ID, parseAll, daysOld } from './games.js';
 import { GROUP } from './config.js';
-import { isDemo, dateKey, submitResults, removeResult, fetchRows, resetDemo } from './storage.js';
+import { isDemo, dateKey, submitResults, removeResults, fetchRows, resetDemo } from './storage.js';
 import { buildBoard, pointsFor } from './leaderboard.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,6 +25,8 @@ let results = load(resultsKey(), {}); // { gameId: { label, value, puzzle, full,
 let skipped = load(skippedKey(), []); // games passed over today with "Skip"
 let boardText = '';
 let healed = false;
+let boardRequest = 0; // so a slow leaderboard load can't overwrite a newer one
+let boardView = load('dgh.boardView', ''); // which game the "By game" section shows ('' = first played, 'grid' = full grid)
 
 const saveResults = () => save(resultsKey(), results);
 
@@ -131,8 +133,15 @@ async function handleText(text, { quiet = false } = {}) {
     }
     return 0;
   }
+  // Old results (e.g. yesterday's Wordle still on the clipboard) aren't today's score.
+  const old = parsed.filter((r) => (daysOld(r.game, r.puzzle) ?? 0) > 0);
+  const current = parsed.filter((r) => !old.includes(r));
+  if (old.length && !quiet) {
+    toast(`Not saved: that's an old ${old.map((r) => GAME_BY_ID[r.game].name).join(', ')} result`);
+  }
+  if (!current.length) return 0;
   // Skip results we already have, identical (e.g. auto-paste on refocus).
-  const fresh = parsed.filter((r) => results[r.game]?.full !== r.full);
+  const fresh = current.filter((r) => results[r.game]?.full !== r.full);
   if (!fresh.length) {
     if (!quiet) toast('Already saved ✓');
     return 0;
@@ -145,7 +154,8 @@ async function handleText(text, { quiet = false } = {}) {
   for (const r of fresh) {
     document.querySelector(`.game[data-game="${r.game}"]`)?.classList.add('flash');
   }
-  toast(fresh.map((r) => `✓ ${GAME_BY_ID[r.game].name} ${r.label}`).join('  ·  '));
+  toast(fresh.map((r) => `✓ ${GAME_BY_ID[r.game].name} ${r.label}`).join('  ·  ')
+    + (old.length && !quiet ? `  (skipped old ${old.map((r) => GAME_BY_ID[r.game].name).join(', ')})` : ''));
   syncPending();
   return fresh.length;
 }
@@ -220,6 +230,24 @@ function renderSummary() {
   $('summary-text').textContent = text || 'Nothing yet. Play a game and paste the result on the Play tab.';
   const lines = text ? text.split('\n').length : 0;
   $('summary-meta').textContent = text ? `Preview · ${lines} lines` : '';
+  setWhatsApp($('wa-summary'), text);
+}
+
+// ---------- WhatsApp ----------
+// A real link (not a script redirect), so a tap opens the WhatsApp app on iPhone and
+// Android with the message typed in; you just pick the group. On a computer it opens
+// WhatsApp Web / Desktop in a new tab so DailyHub stays open.
+const isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function setWhatsApp(link, text) {
+  link.classList.toggle('disabled', !text);
+  if (!text) { link.removeAttribute('href'); return; }
+  link.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  if (isPhone) link.removeAttribute('target'); else link.target = '_blank';
+}
+for (const id of ['wa-summary', 'wa-board']) {
+  $(id).addEventListener('click', (e) => {
+    if (!$(id).getAttribute('href')) { e.preventDefault(); toast('Nothing to send yet'); }
+  });
 }
 
 async function copyText(text, okMsg) {
@@ -249,18 +277,38 @@ async function shareText(text) {
 }
 
 // ---------- leaderboard tab ----------
-async function renderBoard() {
+const monthStart = () => `${dateKey().slice(0, 8)}01`;
+const lc = (s) => String(s).toLowerCase();
+
+let lastMonthRows = null; // last download, reused when you just switch the By Game view
+
+async function renderBoard({ refetch = true } = {}) {
   const el = $('board');
-  el.innerHTML = '<div class="empty">Loading…</div>';
-  let rows;
-  try {
-    rows = await fetchRows(GROUP, dateKey(), dateKey());
-  } catch {
-    el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection.</div>';
-    return;
+  let monthRows = lastMonthRows;
+  if (refetch || !monthRows) {
+    const request = ++boardRequest;
+    if (!el.innerHTML.trim()) el.innerHTML = '<div class="empty">Loading…</div>';
+    try {
+      // This month's scores: today's for the board, the rest to know who's in the group.
+      monthRows = await fetchRows(GROUP, monthStart(), dateKey());
+    } catch {
+      if (request === boardRequest) el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection and tap Refresh.</div>';
+      return;
+    }
+    if (request !== boardRequest) return; // a newer load started meanwhile
+    lastMonthRows = monthRows;
   }
+  const today = dateKey();
+
+  // Everyone who has played this month (latest spelling of their name wins), and today's
+  // scores with each name written that one way, so "Riya" and "riya" are one person.
+  const roster = new Map();
+  for (const r of [...monthRows].sort((x, y) => (x.ts || 0) - (y.ts || 0))) roster.set(lc(r.name), r.name);
+  if (profile.name) roster.set(lc(profile.name), profile.name);
+  const rows = monthRows.filter((r) => r.date === today).map((r) => ({ ...r, name: roster.get(lc(r.name)) }));
+
   // If any of my saved results didn't make it to the leaderboard, send them again.
-  const mine = new Set(rows.filter((r) => r.name.toLowerCase() === profile.name.toLowerCase()).map((r) => r.game));
+  const mine = new Set(rows.filter((r) => lc(r.name) === lc(profile.name)).map((r) => r.game));
   const missing = Object.entries(results).filter(([game, r]) => r.synced && !mine.has(game));
   if (missing.length && !isDemo && !healed) {
     healed = true; // only once per visit, so a broken connection can't loop
@@ -268,52 +316,90 @@ async function renderBoard() {
     saveResults();
     syncPending().then(() => setTimeout(renderBoard, 1500));
   }
-  if (!rows.length) {
-    el.innerHTML = '<div class="empty">No scores yet today. Be the first!</div>';
-    boardText = '';
-    return;
-  }
 
   const { overall, games } = buildBoard(rows);
-  const me = profile.name.toLowerCase();
-  const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1] || `${rank}.`; // for the copied chat text
+  const playedToday = new Set(overall.map((p) => lc(p.name)));
+  const waiting = [...roster.entries()].filter(([k]) => !playedToday.has(k)).map(([, n]) => n).sort();
+  const me = lc(profile.name);
+  const total = GAMES.length;
+
+  // 1) Standings, with how many games each person has played so far.
+  let html = `<div class="board-card"><h3>Today's Standings</h3>`;
+  if (overall.length) {
+    html += `<table class="standings">${overall.map((p) => `<tr class="${lc(p.name) === me ? 'me' : ''}">
+      <td class="r">${p.rank}</td>
+      <td class="n">${esc(p.name)}
+        <span class="progress"><span class="mini-ticks">${'<i class="on"></i>'.repeat(p.played)}${'<i></i>'.repeat(Math.max(0, total - p.played))}</span>${p.played === total ? `all ${total} done` : `${p.played} of ${total} played`}</span>
+      </td>
+      <td class="v">${p.points} pts${p.wins ? `<span class="wins">best in ${p.wins}</span>` : ''}</td></tr>`).join('')}</table>`;
+  } else {
+    html += '<div class="empty">No scores yet today. Be the first!</div>';
+  }
+  if (waiting.length) {
+    html += `<p class="waiting"><b>Not played yet:</b> ${waiting.map(esc).join(', ')}</p>`;
+  }
+  html += '</div>';
+
+  // 2) By game: pick a game to see everyone's score in it, or the full grid.
   const played = GAMES.filter((g) => games[g.id]);
+  if (played.length) {
+    if (boardView !== 'grid' && !games[boardView]) boardView = played[0].id;
+    const chips = GAMES.map((g) => `<button class="chip ${boardView === g.id ? 'on' : ''}" data-view="${g.id}" ${games[g.id] ? '' : 'disabled'}>${g.emoji} ${g.name}</button>`).join('')
+      + `<button class="chip ${boardView === 'grid' ? 'on' : ''}" data-view="grid">▦ All games</button>`;
+    html += `<div class="board-card"><h3>By Game</h3><div class="chips" role="tablist">${chips}</div>`;
 
-  // 1) Total standings.
-  let html = `<div class="board-card"><h3>Today's Standings</h3><table class="standings">${
-    overall.map((p) => `<tr class="${p.name.toLowerCase() === me ? 'me' : ''}">
-      <td class="r">${p.rank}</td><td class="n">${esc(p.name)}</td>
-      <td class="v">${p.points} pts${p.wins ? `<span class="wins">best in ${p.wins}</span>` : ''}</td></tr>`).join('')
-  }</table></div>`;
-
-  // 2) Every friend's score in every game; the best one(s) per game highlighted.
-  const head = overall.map((p) => `<th class="${p.name.toLowerCase() === me ? 'me' : ''}">${esc(p.name)}</th>`).join('');
-  const body = played.map((g) => {
-    const byName = Object.fromEntries(games[g.id].map((p) => [p.name, p]));
-    const cells = overall.map((o) => {
-      const p = byName[o.name];
-      if (!p) return '<td class="none">—</td>';
-      return `<td class="${p.rank === 1 ? 'best' : ''}">${esc(p.label)}<small>${p.points} pts</small></td>`;
-    }).join('');
-    return `<tr><th class="g">${g.name}</th>${cells}</tr>`;
-  }).join('');
-  const total = overall.map((p) => `<td>${p.points} pts</td>`).join('');
-  html += `<div class="board-card"><h3>The Scoresheet</h3>
-    <div class="grid-scroll"><table class="grid">
-      <thead><tr><th class="g"></th>${head}</tr></thead>
-      <tbody>${body}<tr class="total"><th class="g">Total</th>${total}</tr></tbody>
-    </table></div></div>`;
+    if (boardView === 'grid') {
+      const head = overall.map((p) => `<th class="${lc(p.name) === me ? 'me' : ''}">${esc(p.name)}</th>`).join('');
+      const body = played.map((g) => {
+        const byName = Object.fromEntries(games[g.id].map((p) => [p.name, p]));
+        const cells = overall.map((o) => {
+          const p = byName[o.name];
+          if (!p) return '<td class="none">—</td>';
+          return `<td class="${p.rank === 1 ? 'best' : ''}">${esc(p.label)}<small>${p.points} pts</small></td>`;
+        }).join('');
+        return `<tr><th class="g">${g.emoji} ${g.name}</th>${cells}</tr>`;
+      }).join('');
+      const totals = overall.map((p) => `<td>${p.points} pts</td>`).join('');
+      html += `<div class="grid-scroll"><table class="grid">
+        <thead><tr><th class="g"></th>${head}</tr></thead>
+        <tbody>${body}<tr class="total"><th class="g">Total</th>${totals}</tr></tbody>
+      </table></div>`;
+    } else {
+      const g = GAME_BY_ID[boardView];
+      const list = games[g.id];
+      const notYet = [...roster.entries()].filter(([k]) => !list.some((p) => lc(p.name) === k)).map(([, n]) => n).sort();
+      html += `<ol class="game-rank">${list.map((p) => `<li class="${p.rank === 1 ? 'best' : ''} ${lc(p.name) === me ? 'me' : ''}">
+          <span class="r">${p.rank}</span>
+          <span class="who"><b>${esc(p.name)}</b><span class="lbl">${esc(p.label)}</span></span>
+          <span class="bar" aria-hidden="true"><i style="width:${p.points}%"></i></span>
+          <span class="pts">${p.points}</span>
+        </li>`).join('')}</ol>`;
+      if (notYet.length) html += `<p class="waiting"><b>Not played ${esc(g.name)} yet:</b> ${notYet.map(esc).join(', ')}</p>`;
+    }
+    html += '</div>';
+  }
   el.innerHTML = html;
 
-  // Text version for the group chat: standings, then every game best-first.
+  // Text version for the group chat.
+  const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1] || `${rank}.`;
   const lines = [`🏆 DailyHub leaderboard · ${prettyDate()}`];
-  overall.forEach((p) => lines.push(`${medal(p.rank)} ${p.name}: ${p.points} pts`));
-  lines.push('');
+  overall.forEach((p) => lines.push(`${medal(p.rank)} ${p.name}: ${p.points} pts (${p.played}/${total})`));
+  if (waiting.length) lines.push(`⏳ Not played yet: ${waiting.join(', ')}`);
+  if (played.length) lines.push('');
   for (const g of played) {
     lines.push(`${g.emoji} ${g.name}: ${games[g.id].map((p) => `${p.rank === 1 ? '🥇' : ''}${p.name} ${p.label} [${p.points}]`).join(' · ')}`);
   }
-  boardText = lines.join('\n');
+  boardText = overall.length ? lines.join('\n') : '';
+  setWhatsApp($('wa-board'), boardText);
 }
+
+$('board').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-view]');
+  if (!chip || chip.disabled) return;
+  boardView = chip.dataset.view;
+  save('dgh.boardView', boardView);
+  renderBoard({ refetch: false });
+});
 
 $('scoring-list').innerHTML = GAMES.map((g) => `<li>${g.emoji} <b>${g.name}</b>: ${esc(g.scoring)}</li>`).join('');
 
@@ -331,17 +417,24 @@ function openSettings() {
 function saveSettings(e) {
   const name = $('set-name').value.trim();
   if (!name) { e.preventDefault(); return; }
-  const changedIdentity = name !== profile.name;
+  const oldName = profile.name;
   profile.name = name;
   save(PROFILE_KEY, profile);
-  if (changedIdentity) {
-    // Re-upload today's scores under the new name.
+  let removal = Promise.resolve();
+  if (name !== oldName) {
+    // Take today's scores off the leaderboard under the old username (unless only the
+    // capitals changed: that's the same entry), then re-upload them under the new one.
+    const uploaded = Object.keys(results).filter((game) => results[game].synced);
+    if (oldName && lc(oldName) !== lc(name) && uploaded.length) {
+      removal = removeResults(uploaded.map((game) => ({ group: GROUP, name: oldName, date: dateKey(), game }))).catch(() => {});
+    }
     for (const r of Object.values(results)) r.synced = false;
     saveResults();
+    lastMonthRows = null;
   }
   renderHeader();
   renderPlay();
-  syncPending();
+  removal.then(syncPending); // one write at a time
 }
 
 function renderHeader() {
@@ -392,7 +485,7 @@ $('game-list').addEventListener('click', async (e) => {
   renderPlay();
   toast(`Removed ${GAME_BY_ID[id].name}`);
   if (r?.synced) {
-    try { await removeResult({ group: GROUP, name: profile.name, date: dateKey(), game: id }); } catch {}
+    try { await removeResults([{ group: GROUP, name: profile.name, date: dateKey(), game: id }]); } catch {}
   }
 });
 for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
@@ -411,14 +504,32 @@ $('clear-today').addEventListener('click', async () => {
   results = {};
   saveResults();
   renderPlay();
-  for (const [game, r] of Object.entries(old)) {
-    if (r.synced) try { await removeResult({ group: GROUP, name: profile.name, date: dateKey(), game }); } catch {}
-  }
+  const uploaded = Object.keys(old).filter((game) => old[game].synced);
+  try { await removeResults(uploaded.map((game) => ({ group: GROUP, name: profile.name, date: dateKey(), game }))); } catch {}
 });
 $('reset-demo').addEventListener('click', () => { resetDemo(); toast('Demo data reset'); });
 
+// ---------- always run the latest version ----------
+// version.json is fetched fresh (never cached). If a newer release is out, refresh the
+// page itself in the browser cache and reload; the new page points at new ?v= files.
+const APP_VERSION = document.querySelector('meta[name="app-version"]').content;
+async function checkForUpdate() {
+  if (APP_VERSION === 'dev') return; // local copy without a release stamp
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    const { v } = await res.json();
+    if (!v || v === APP_VERSION) return;
+    // Don't loop if the server is still handing out the old page for a minute.
+    if (sessionStorage.getItem('dgh.reloadedFor') === v) return;
+    sessionStorage.setItem('dgh.reloadedFor', v);
+    await fetch(location.pathname, { cache: 'reload' });
+    location.reload();
+  } catch {}
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
+  checkForUpdate();
   // Crossed midnight while the tab was open? Start a fresh day.
   const fresh = load(resultsKey(), {});
   if (JSON.stringify(fresh) !== JSON.stringify(results)) { results = fresh; }
@@ -433,3 +544,4 @@ renderHeader();
 renderPlay();
 syncPending();
 if (!profile.name) openSettings();
+checkForUpdate();

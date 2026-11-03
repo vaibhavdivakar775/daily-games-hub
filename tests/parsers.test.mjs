@@ -52,3 +52,29 @@ check('points: edges', () => {
   assert.equal(pts('cryptic', 5), 10);
 });
 console.log(`${passed} checks passed (with points)`);
+
+// ---- stale results ----
+import { daysOld } from '../games.js';
+const nov3 = new Date(2026, 10, 3, 9, 0);
+check('today: all dated games are 0 days old', () => {
+  for (const r of Object.values(a)) {
+    const d = daysOld(r.game, r.puzzle, nov3);
+    assert.ok(d === 0 || d === null, `${r.game} → ${d}`);
+  }
+});
+check('yesterday: sample 2 is 1 day old', () => {
+  for (const r of Object.values(b)) {
+    const d = daysOld(r.game, r.puzzle, nov3);
+    assert.ok(d === 1 || d === null, `${r.game} → ${d}`);
+  }
+});
+check('maptap across new year', () => assert.equal(daysOld('maptap', 'December 31', new Date(2027, 0, 1)), 1));
+check('perceptle numbering is not judged', () => assert.equal(daysOld('perceptle', '#109', nov3), null));
+check('every game except Perceptle is judged on sample 1', () => {
+  for (const r of Object.values(a)) assert.equal(daysOld(r.game, r.puzzle, nov3), r.game === 'perceptle' ? null : 0, r.game);
+});
+check('a week later, numbered games count 7 days', () => {
+  const nov10 = new Date(2026, 10, 10);
+  for (const id of ['wordle', 'connections', 'farflung', 'krillion']) assert.equal(daysOld(id, a[id].puzzle, nov10), 7, id);
+});
+console.log(`${passed} checks passed (with stale-result checks)`);

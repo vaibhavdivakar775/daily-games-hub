@@ -133,12 +133,13 @@ export async function submitResults(rows) {
   }
 }
 
-export async function removeResult(row) {
+export async function removeResults(rows) {
+  if (!rows.length) return;
   if (isDemo) {
-    demoSave(demoRows(row.group).filter((r) => !same(r, row)));
+    demoSave(demoRows(rows[0].group).filter((r) => !rows.some((x) => same(r, x))));
     return;
   }
-  for (const [basket, patch] of Object.entries(byBasket([row], () => null))) {
+  for (const [basket, patch] of Object.entries(byBasket(rows, () => null))) {
     await pantryMerge(basket, patch);
   }
 }
