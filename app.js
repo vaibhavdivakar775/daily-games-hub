@@ -320,7 +320,7 @@ $('scoring-list').innerHTML = GAMES.map((g) => `<li>${g.emoji} <b>${g.name}</b>:
 // ---------- settings ----------
 function openSettings() {
   const firstTime = !profile.name;
-  $('settings-title').textContent = firstTime ? "Who's playing?" : 'Settings';
+  $('settings-title').textContent = firstTime ? 'Pick a username' : 'Settings';
   $('settings-save').textContent = firstTime ? "Let's play" : 'Save';
   $('clear-today').closest('.row').hidden = firstTime;
   $('set-name').value = profile.name;
@@ -347,7 +347,7 @@ function saveSettings(e) {
 function renderHeader() {
   const now = new Date();
   $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  $('me-name').textContent = profile.name || 'Set name';
+  $('me-name').textContent = profile.name || 'Username';
 }
 
 // ---------- wire up ----------

@@ -303,6 +303,8 @@ dialog label {
   display: block; margin-bottom: 12px; font: 700 12px var(--sans);
   letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
 }
+dialog .name-hint { margin: -4px 0 0; font: 14px/1.45 var(--sans); color: var(--muted); }
+dialog input::placeholder { color: var(--rule); }
 dialog .theme-pick { margin: 18px 0 6px; }
 dialog .theme-pick .seg { margin: 6px 0 0; }
 dialog input:not([type]), dialog input[type=text] {
