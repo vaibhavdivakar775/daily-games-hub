@@ -356,13 +356,6 @@ body[data-tab="play"] { padding-bottom: calc(var(--tabs-h, 52px) + 110px); }
 .tabs button.main-tab.on { outline: 2px solid var(--ink); outline-offset: -5px; }
 .tabs button.main-tab.on::after { display: none; }
 
-/* ---------- credit ---------- */
-.credit {
-  max-width: 560px; margin: 8px auto 0; padding: 14px 16px 6px;
-  text-align: center; font: 14px var(--sans); color: var(--muted);
-}
-.credit b { font-weight: 600; color: var(--ink-soft); }
-
 /* ---------- name dialog ---------- */
 dialog {
   border: 1.5px solid var(--ink); padding: 0; width: min(420px, calc(100% - 32px));
