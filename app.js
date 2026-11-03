@@ -150,8 +150,7 @@ function renderPlay() {
         <div class="name">${g.name}${r ? (isMyNewBest(g.id, r.value) ? '<span class="stamp best">NEW BEST</span>' : '<span class="stamp">SOLVED</span>') : ''}</div>
         <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
-      ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>
-      <button class="paste" data-paste="${g.id}" aria-label="Paste ${g.name} result">Paste</button>`}
+      ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>`}
       ${r ? `<button class="x" data-remove="${g.id}" aria-label="Remove ${g.name} result">✕</button>` : ''}
     </li>`;
   }).join('');
@@ -167,7 +166,6 @@ async function handleText(text, { quiet = false } = {}) {
   if (!parsed.length) {
     if (!quiet) {
       toast("Couldn't recognise a game result in that text");
-      $('manual').open = true;
     }
     return 0;
   }
@@ -229,10 +227,8 @@ async function pasteFromClipboard() {
     }
     return await handleText(text);
   } catch {
-    // Firefox / denied permission / older iOS: fall back to the manual box.
-    $('manual').open = true;
-    $('manual').scrollIntoView({ block: 'center' });
-    $('manual-text').focus();
+    // Firefox / denied permission: long-pressing the box works everywhere.
+    $('paste-input').focus();
     toast('Long-press the box and tap Paste');
     return 0;
   }
@@ -498,11 +494,55 @@ function renderHeader() {
 }
 
 // ---------- wire up ----------
-$('manual-add').addEventListener('click', async () => {
-  if (await handleText($('manual-text').value)) {
-    $('manual-text').value = '';
-    $('manual').open = false;
+// ---------- the paste box ----------
+// Paste into it (long-press → Paste on phones, Cmd/Ctrl+V on computers) and the result is
+// saved at once; there's no Add button. The box empties itself afterwards.
+const pasteInput = $('paste-input');
+function takePastedText(text) {
+  pasteInput.value = '';
+  if (text && text.trim()) handleText(text);
+}
+pasteInput.addEventListener('paste', (e) => {
+  const text = e.clipboardData?.getData('text');
+  if (text == null) return; // no clipboard data on this browser: the input event below handles it
+  e.preventDefault();
+  takePastedText(text);
+});
+// Fallback for browsers/keyboards that insert pasted text without a usable paste event,
+// and for "Type instead": save once the text looks like a whole result (after a short pause).
+let typeTimer;
+pasteInput.addEventListener('input', () => {
+  clearTimeout(typeTimer);
+  const typing = pasteInput.inputMode === 'text';
+  typeTimer = setTimeout(() => {
+    const text = pasteInput.value;
+    if (!text.trim()) return;
+    if (!typing || parseAll(text).length) takePastedText(text);
+  }, typing ? 1200 : 50);
+});
+$('paste-btn').addEventListener('click', pasteFromClipboard);
+// "Type instead": bring the keyboard back for typing a result by hand.
+$('paste-type').addEventListener('click', () => {
+  pasteInput.inputMode = 'text';
+  pasteInput.rows = 4;
+  pasteInput.placeholder = 'Type or paste your result. It saves once a game is recognised.';
+  pasteInput.focus();
+});
+pasteInput.addEventListener('blur', () => {
+  if (pasteInput.inputMode === 'text' && !pasteInput.value.trim()) {
+    pasteInput.inputMode = 'none';
+    pasteInput.rows = 1;
+    pasteInput.placeholder = 'Long-press here → Paste';
   }
+});
+// On a computer: Cmd/Ctrl+V anywhere on the Play page pastes a result, no box needed.
+document.addEventListener('paste', (e) => {
+  if (e.target === pasteInput || $('tab-play').hidden) return;
+  if (e.target.closest?.('input, textarea, [contenteditable]')) return;
+  const text = e.clipboardData?.getData('text');
+  if (!text || !parseAll(text).length) return;
+  e.preventDefault();
+  handleText(text);
 });
 // Always open games in a new tab so DailyHub stays put. window.open instead of
 // target=_blank, which isn't honoured everywhere (in-app browsers, home-screen apps).
@@ -517,8 +557,6 @@ function openGame(e, gameId) {
 $('game-list').addEventListener('click', async (e) => {
   const link = e.target.closest('a.play');
   if (link) return openGame(e, link.closest('.game').dataset.game);
-  // Paste reads whatever result is on the clipboard; it's matched to its game automatically.
-  if (e.target.closest('[data-paste]')) return pasteFromClipboard();
   const id = e.target.dataset?.remove;
   if (!id) return;
   const r = results[id];
