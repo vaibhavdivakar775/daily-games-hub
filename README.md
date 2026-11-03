@@ -45,10 +45,10 @@ open or come back to the foreground, and reload themselves when a newer version 
 Actions tab → "Back up leaderboard" → Run workflow). It copies every Pantry basket into
 `backup/<basket>.json` and commits it, so the scores survive even if Pantry goes away.
 
-## Put it online (GitHub Pages, free)
-1. Create a public GitHub repo named `daily-games-hub` and push this folder to it.
-2. In the repo, go to **Settings → Pages → Source: Deploy from branch → main / root**.
-3. Send friends `https://<your-username>.github.io/daily-games-hub/`.
+## Where it's hosted
+- **Main link (share this one): https://dailyhubgames.vercel.app**. Vercel republishes automatically on every push to `main`.
+- GitHub Pages copy: https://vaibhavdivakar775.github.io/daily-games-hub/ (same code, also updates on push).
+- The WhatsApp/iMessage link preview uses `og.png` and the `og:` tags in `index.html`.
 
 ## Adding a new game
 Add an entry to `GAMES` in `games.js` with:
