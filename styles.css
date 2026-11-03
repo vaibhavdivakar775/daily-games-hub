@@ -241,7 +241,7 @@ b { font-weight: 600; }
 .standings td.n { font: 700 21px var(--display); }
 .standings td.v { text-align: right; font: 700 17px var(--sans); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .standings .wins { display: block; font: 500 12px var(--sans); color: var(--muted); }
-.standings tr.me td.n::after { content: " (you)"; font: 500 14px var(--sans); color: var(--orange); }
+.standings tr.me td.n .nm::after { content: " (you)"; font: 500 14px var(--sans); color: var(--orange); }
 
 /* how many of today's games each person has played */
 .standings .progress {

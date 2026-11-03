@@ -328,7 +328,7 @@ async function renderBoard({ refetch = true } = {}) {
   if (overall.length) {
     html += `<table class="standings">${overall.map((p) => `<tr class="${lc(p.name) === me ? 'me' : ''}">
       <td class="r">${p.rank}</td>
-      <td class="n">${esc(p.name)}
+      <td class="n"><span class="nm">${esc(p.name)}</span>
         <span class="progress"><span class="mini-ticks">${'<i class="on"></i>'.repeat(p.played)}${'<i></i>'.repeat(Math.max(0, total - p.played))}</span>${p.played === total ? `all ${total} done` : `${p.played} of ${total} played`}</span>
       </td>
       <td class="v">${p.points} pts${p.wins ? `<span class="wins">best in ${p.wins}</span>` : ''}</td></tr>`).join('')}</table>`;
