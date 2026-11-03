@@ -217,23 +217,6 @@ async function syncPending() {
   }
 }
 
-// Returns how many results were saved (0 if none).
-async function pasteFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text.trim()) {
-      toast('Clipboard is empty. Tap Share in the game first');
-      return 0;
-    }
-    return await handleText(text);
-  } catch {
-    // Firefox / denied permission: long-pressing the box works everywhere.
-    $('paste-input').focus();
-    toast('Long-press the box and tap Paste');
-    return 0;
-  }
-}
-
 // Desktop Chrome: if clipboard permission is already granted, read it automatically
 // when you come back to this tab. iOS/Android always need the Paste tap.
 async function autoPasteOnReturn() {
@@ -495,45 +478,27 @@ function renderHeader() {
 
 // ---------- wire up ----------
 // ---------- the paste box ----------
-// Paste into it (long-press → Paste on phones, Cmd/Ctrl+V on computers) and the result is
-// saved at once; there's no Add button. The box empties itself afterwards.
+// Paste into it (long-press or right-click → Paste, or Cmd/Ctrl+V) and the result is saved
+// at once; there's no Add button. The box empties itself afterwards.
 const pasteInput = $('paste-input');
-function takePastedText(text) {
-  pasteInput.value = '';
-  if (text && text.trim()) handleText(text);
-}
 pasteInput.addEventListener('paste', (e) => {
   const text = e.clipboardData?.getData('text');
   if (text == null) return; // no clipboard data on this browser: the input event below handles it
   e.preventDefault();
-  takePastedText(text);
+  pasteInput.value = '';
+  if (text.trim()) handleText(text);
 });
-// Fallback for browsers/keyboards that insert pasted text without a usable paste event,
-// and for "Type instead": save once the text looks like a whole result (after a short pause).
-let typeTimer;
+// Fallback for phones/keyboards that insert pasted text without a usable paste event, and for
+// typing on a computer keyboard: save as soon as the text is a whole recognisable result.
+let inputTimer;
 pasteInput.addEventListener('input', () => {
-  clearTimeout(typeTimer);
-  const typing = pasteInput.inputMode === 'text';
-  typeTimer = setTimeout(() => {
+  clearTimeout(inputTimer);
+  inputTimer = setTimeout(() => {
     const text = pasteInput.value;
-    if (!text.trim()) return;
-    if (!typing || parseAll(text).length) takePastedText(text);
-  }, typing ? 1200 : 50);
-});
-$('paste-btn').addEventListener('click', pasteFromClipboard);
-// "Type instead": bring the keyboard back for typing a result by hand.
-$('paste-type').addEventListener('click', () => {
-  pasteInput.inputMode = 'text';
-  pasteInput.rows = 4;
-  pasteInput.placeholder = 'Type or paste your result. It saves once a game is recognised.';
-  pasteInput.focus();
-});
-pasteInput.addEventListener('blur', () => {
-  if (pasteInput.inputMode === 'text' && !pasteInput.value.trim()) {
-    pasteInput.inputMode = 'none';
-    pasteInput.rows = 1;
-    pasteInput.placeholder = 'Long-press here → Paste';
-  }
+    if (!text.trim() || !parseAll(text).length) return; // not a full result yet: keep it
+    pasteInput.value = '';
+    handleText(text);
+  }, 600);
 });
 // On a computer: Cmd/Ctrl+V anywhere on the Play page pastes a result, no box needed.
 document.addEventListener('paste', (e) => {

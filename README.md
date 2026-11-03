@@ -7,7 +7,7 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 1. Open the link and enter your name. That's all the setup there is.
 2. Tap **Play** next to a game to open it in a new tab.
 3. In the game, tap **Share** (on iPhone pick **Copy** if a share sheet appears).
-4. Come back and paste it into the **paste box** at the top (long-press → Paste on phones, Cmd/Ctrl+V on computers). It saves straight away and works out which game it is; several results at once is fine.
+4. Come back and paste it into the **paste box** at the top (long-press or right-click → Paste, or Cmd/Ctrl+V). It saves straight away and works out which game it is; several results at once is fine.
    You can also paste several results at once, or a whole WhatsApp chunk.
 5. Tap the orange **Copy final results** button at the bottom: copy your results, or send them straight to WhatsApp.
 6. **Leaderboard** shows today's standings (with how many games each person has played and who hasn't played yet), a per-game ranking, and the full grid. **Send to WhatsApp** opens WhatsApp with the message typed in.
