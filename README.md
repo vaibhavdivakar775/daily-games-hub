@@ -1,7 +1,7 @@
 # 🎮 Daily Games Hub
 
 One link for the group: play the daily games, paste each result, post **one** tidy message, and see a group leaderboard.
-It's free to host: a static site on GitHub Pages, with the leaderboard stored in a Google Sheet.
+It's free to host: a static site on GitHub Pages, with the leaderboard stored in [Pantry](https://getpantry.cloud), a free JSON store.
 
 ## How friends use it
 1. Open the link and enter your name. That's all the setup there is.
@@ -18,9 +18,8 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 | `games.js` | Game list (name, link, emoji) and the share-text parsers. **Add or edit games here.** |
 | `app.js` | The page: Play, Copy Results, Leaderboard, Settings |
 | `leaderboard.js` | Totals: every game's 0–100 points added up (formulas live in `games.js`) |
-| `storage.js` | Saves scores to Google Sheets, or to this browser in demo mode |
-| `config.js` | Paste your Apps Script URL here |
-| `backend/Code.gs` | The Google Apps Script backend |
+| `storage.js` | Saves scores to Pantry, or to this browser in demo mode |
+| `config.js` | Your Pantry ID |
 | `tests/` | `node tests/parsers.test.mjs` checks every parser against real share texts |
 
 ## Run locally
@@ -29,18 +28,11 @@ cd ~/daily-games-hub && python3 -m http.server 8787
 ```
 Then open http://localhost:8787. With `config.js` left empty it runs in **demo mode** with fake friends.
 
-## Turn on the shared leaderboard (one time, about 5 minutes, free)
-1. Go to https://sheets.new and name the sheet `Daily Games Hub`.
-2. Open **Extensions → Apps Script**, delete what's there, paste in all of `backend/Code.gs`, and save.
-3. Click **Deploy → New deployment**. Under the gear icon pick **Web app**, then set:
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-4. Click **Deploy**, then **Authorize access** and allow it. Google shows an "unverified app" warning because it's your own script: click **Advanced → Go to … (unsafe)**.
-5. Copy the **Web app URL** (it ends in `/exec`) into `config.js`:
-   ```js
-   export const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/XXXX/exec';
-   ```
-   If you later edit Code.gs, use **Deploy → Manage deployments → Edit → New version**, so the URL stays the same.
+## The shared leaderboard (Pantry)
+Scores live in a free [Pantry](https://getpantry.cloud) store. There's one basket per month (`squad-2026-11`), and each score is its own key (`2026-11-03|alex|wordle`), so friends saving at the same moment never overwrite each other.
+- To start a new Pantry: create one on getpantry.cloud (it has a CAPTCHA), then put its ID in `config.js`.
+- To view the raw data, open `https://getpantry.cloud/apiv1/pantry/<PANTRY_ID>/basket/squad-2026-11`.
+- With `PANTRY_ID` empty, the site runs in demo mode with fake friends.
 
 ## Put it online (GitHub Pages, free)
 1. Create a public GitHub repo named `daily-games-hub` and push this folder to it.

@@ -1,6 +1,6 @@
 import { GAMES, GAME_BY_ID, parseAll } from './games.js';
 import { GROUP } from './config.js';
-import { isDemo, dateKey, submitResult, removeResult, fetchRows, resetDemo } from './storage.js';
+import { isDemo, dateKey, submitResults, removeResult, fetchRows, resetDemo } from './storage.js';
 import { buildBoard, pointsFor } from './leaderboard.js';
 
 const $ = (id) => document.getElementById(id);
@@ -24,6 +24,7 @@ profile.summaryFormat ||= 'full'; // 'full' = the games' original share texts (s
 let results = load(resultsKey(), {}); // { gameId: { label, value, puzzle, full, synced } }
 let skipped = load(skippedKey(), []); // games passed over today with "Skip"
 let boardText = '';
+let healed = false;
 
 const saveResults = () => save(resultsKey(), results);
 
@@ -119,22 +120,21 @@ async function handleText(text, { quiet = false } = {}) {
   return fresh.length;
 }
 
+// Upload every not-yet-uploaded result in one request.
 async function syncPending() {
   if (!profile.name) return;
   const date = dateKey();
-  for (const [game, r] of Object.entries(results)) {
-    if (r.synced) continue;
-    try {
-      await submitResult({
-        group: GROUP, name: profile.name, date, game,
-        value: r.value, label: r.label, puzzle: r.puzzle, ts: Date.now(),
-      });
-      r.synced = true;
-      saveResults();
-    } catch {
-      toast('Saved on this device. Leaderboard sync will retry later');
-      return;
-    }
+  const pending = Object.entries(results).filter(([, r]) => !r.synced);
+  if (!pending.length) return;
+  try {
+    await submitResults(pending.map(([game, r]) => ({
+      group: GROUP, name: profile.name, date, game,
+      value: r.value, label: r.label, puzzle: r.puzzle, ts: Date.now(),
+    })));
+    for (const [, r] of pending) r.synced = true;
+    saveResults();
+  } catch {
+    toast('Saved on this device. Leaderboard sync will retry later');
   }
 }
 
@@ -226,6 +226,15 @@ async function renderBoard() {
   } catch {
     el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection.</div>';
     return;
+  }
+  // If any of my saved results didn't make it to the leaderboard, send them again.
+  const mine = new Set(rows.filter((r) => r.name.toLowerCase() === profile.name.toLowerCase()).map((r) => r.game));
+  const missing = Object.entries(results).filter(([game, r]) => r.synced && !mine.has(game));
+  if (missing.length && !isDemo && !healed) {
+    healed = true; // only once per visit, so a broken connection can't loop
+    for (const [, r] of missing) r.synced = false;
+    saveResults();
+    syncPending().then(() => setTimeout(renderBoard, 1500));
   }
   if (!rows.length) {
     el.innerHTML = '<div class="empty">No scores yet today. Be the first!</div>';

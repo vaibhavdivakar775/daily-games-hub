@@ -1,11 +1,11 @@
 // Leaderboard storage. Two backends with the same interface:
-//   remote (Google Apps Script + Sheet) when APPS_SCRIPT_URL is set,
+//   remote (Pantry, a free JSON store at getpantry.cloud) when PANTRY_ID is set,
 //   demo (this browser's localStorage, seeded with fake friends) otherwise.
 // Row shape: { group, name, date: 'YYYY-MM-DD', game, value, label, puzzle, ts }
-import { APPS_SCRIPT_URL } from './config.js';
+import { PANTRY_ID } from './config.js';
 import { GAMES } from './games.js';
 
-export const isDemo = !APPS_SCRIPT_URL;
+export const isDemo = !PANTRY_ID;
 
 export function dateKey(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
@@ -75,21 +75,61 @@ export function resetDemo() {
   try { localStorage.removeItem(DEMO_KEY); } catch {}
 }
 
+// ---------- Pantry backend ----------
+// One "basket" (a JSON object) per group per month, e.g. "squad-2026-11".
+// Each score is its own key, "2026-11-03|alex|wordle", and Pantry's PUT merges
+// keys into the basket, so two friends saving at once don't overwrite each other.
+// Removing a score sets its key to null.
+const API = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
+const basketName = (group, date) => `${group.toLowerCase()}-${date.slice(0, 7)}`;
+const rowKey = (r) => `${r.date}|${r.name.toLowerCase()}|${r.game}`;
+
+// Pantry rate-limits bursts (HTTP 429), so wait a moment and try again.
+async function pantryFetch(url, opts = {}) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, opts);
+    if (res.status !== 429 || attempt === 5) return res;
+    await new Promise((r) => setTimeout(r, 2000 + 1000 * attempt + Math.random() * 1000));
+  }
+}
+
+async function pantryMerge(basket, patch) {
+  const opts = (method) => ({
+    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  });
+  let res = await pantryFetch(API + basket, opts('PUT'));
+  if (!res.ok) {
+    // First score of the month: the basket doesn't exist yet, so create it.
+    res = await pantryFetch(API + basket, opts('POST'));
+    if (!res.ok) throw new Error(`Pantry ${res.status}`);
+  }
+}
+
+async function pantryGet(basket) {
+  const res = await pantryFetch(API + basket, { cache: 'no-store' });
+  if (res.status === 400 || res.status === 404) return {}; // no scores this month yet
+  if (!res.ok) throw new Error(`Pantry ${res.status}`);
+  return res.json();
+}
+
+// Group rows by basket so a whole batch of results is one request per month.
+function byBasket(rows, toValue) {
+  const out = {};
+  for (const r of rows) (out[basketName(r.group, r.date)] ||= {})[rowKey(r)] = toValue(r);
+  return out;
+}
+
 // ---------- public API ----------
-export async function submitResult(row) {
+export async function submitResults(rows) {
+  if (!rows.length) return;
   if (isDemo) {
-    const rows = demoRows(row.group).filter((r) => !same(r, row));
-    rows.push(row);
-    demoSave(rows);
+    const all = demoRows(rows[0].group).filter((r) => !rows.some((n) => same(r, n)));
+    demoSave([...all, ...rows]);
     return;
   }
-  // text/plain keeps this a "simple" request, so the browser skips the CORS preflight
-  // that Apps Script can't answer.
-  await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'submit', row }),
-  });
+  for (const [basket, patch] of Object.entries(byBasket(rows, (r) => r))) {
+    await pantryMerge(basket, patch);
+  }
 }
 
 export async function removeResult(row) {
@@ -97,11 +137,9 @@ export async function removeResult(row) {
     demoSave(demoRows(row.group).filter((r) => !same(r, row)));
     return;
   }
-  await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'remove', row }),
-  });
+  for (const [basket, patch] of Object.entries(byBasket([row], () => null))) {
+    await pantryMerge(basket, patch);
+  }
 }
 
 export async function fetchRows(group, from, to) {
@@ -110,8 +148,9 @@ export async function fetchRows(group, from, to) {
       (r) => r.group.toLowerCase() === group.toLowerCase() && r.date >= from && r.date <= to
     );
   }
-  const url = `${APPS_SCRIPT_URL}?group=${encodeURIComponent(group)}&from=${from}&to=${to}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.rows || [];
+  const months = [...new Set([from.slice(0, 7), to.slice(0, 7)])];
+  const baskets = await Promise.all(months.map((m) => pantryGet(`${group.toLowerCase()}-${m}`)));
+  return baskets
+    .flatMap((b) => Object.values(b))
+    .filter((r) => r && r.date && r.date >= from && r.date <= to); // skips _metadata and removed scores
 }
