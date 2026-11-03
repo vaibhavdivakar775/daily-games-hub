@@ -34,11 +34,18 @@ function applyTheme(theme) {
   if (theme === 'paper') document.documentElement.dataset.theme = 'paper';
   else delete document.documentElement.dataset.theme;
   $('theme-color').content = theme === 'paper' ? '#f3ede0' : '#0b0b0b';
+  $('theme-btn').setAttribute('aria-label', theme === 'paper' ? 'Switch to Black & Orange theme' : 'Switch to Newspaper theme');
   for (const b of document.querySelectorAll('[data-theme-choice]')) {
     b.classList.toggle('on', b.dataset.themeChoice === (theme || 'night'));
   }
 }
 applyTheme(profile.theme);
+// The sun/moon button in the header flips between the two themes.
+$('theme-btn').addEventListener('click', () => {
+  profile.theme = profile.theme === 'paper' ? 'night' : 'paper';
+  save(PROFILE_KEY, profile);
+  applyTheme(profile.theme);
+});
 for (const b of document.querySelectorAll('[data-theme-choice]')) {
   // Switches straight away, so you can see it before closing Settings.
   b.addEventListener('click', () => {
@@ -338,12 +345,8 @@ function saveSettings(e) {
 
 function renderHeader() {
   const now = new Date();
-  // Edition number = day of the year, like a paper's issue number.
-  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-  $('edition-no').textContent = `No. ${dayOfYear} · Vol. ${now.getFullYear()}`;
   $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $('me-name').textContent = profile.name || 'Set name';
-  $('demo-banner').hidden = !isDemo;
 }
 
 // ---------- wire up ----------
