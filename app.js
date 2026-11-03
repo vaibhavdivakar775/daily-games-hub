@@ -53,7 +53,7 @@ function renderPlay() {
   const done = games.filter((g) => results[g.id]).length;
   $('done-count').textContent = done;
   $('total-count').textContent = games.length;
-  $('bar-fill').style.width = games.length ? `${(done / games.length) * 100}%` : '0';
+  $('ticks').innerHTML = games.map((g) => `<i class="${results[g.id] ? 'on' : ''}"></i>`).join('');
 
   const next = games.find((g) => !results[g.id] && !skipped.includes(g.id));
   const nb = $('next-btn');
@@ -61,12 +61,14 @@ function renderPlay() {
   if (next) {
     nb.href = next.url;
     nb.target = '_blank';
-    nb.textContent = `${done ? 'Next' : 'Start'}: ${next.emoji} ${next.name} ↗`;
+    nb.innerHTML = `<small>${done ? 'Next up' : 'Start with'}</small>${next.name} ↗`;
     nb.classList.remove('all-done');
   } else {
     nb.removeAttribute('href');
     nb.removeAttribute('target');
-    nb.textContent = done === games.length ? '🎉 All done! Tap to copy your results' : '✅ Done for today? Tap to copy your results';
+    nb.innerHTML = done === games.length
+      ? '<small>All eight solved</small>Copy your results →'
+      : '<small>Done for today?</small>Copy your results →';
     nb.classList.add('all-done');
   }
 
@@ -75,8 +77,8 @@ function renderPlay() {
     return `<li class="game ${r ? 'done' : ''}" data-game="${g.id}">
       <span class="em">${g.emoji}</span>
       <div class="info">
-        <div class="name">${g.name}</div>
-        <div class="score">${r ? `✓ ${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
+        <div class="name">${g.name}${r ? '<span class="stamp">SOLVED</span>' : ''}</div>
+        <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
       <a class="play" href="${g.url}" target="_blank" rel="noopener">${r ? 'Open' : 'Play ↗'}</a>
       ${r ? `<button class="x" data-remove="${g.id}" aria-label="Remove ${g.name} result">✕</button>` : ''}
@@ -233,14 +235,14 @@ async function renderBoard() {
 
   const { overall, games } = buildBoard(rows);
   const me = profile.name.toLowerCase();
-  const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1] || `${rank}.`;
+  const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1] || `${rank}.`; // for the copied chat text
   const played = GAMES.filter((g) => games[g.id]);
 
   // 1) Total standings.
-  let html = `<div class="board-card overall"><h3>🏆 Today's total</h3><table>${
+  let html = `<div class="board-card"><h3>Today's Standings</h3><table class="standings">${
     overall.map((p) => `<tr class="${p.name.toLowerCase() === me ? 'me' : ''}">
-      <td class="r">${medal(p.rank)}</td><td>${esc(p.name)}</td>
-      <td class="v">${p.points} pts${p.wins ? ` <span class="wins">· ${p.wins}🥇</span>` : ''}</td></tr>`).join('')
+      <td class="r">${p.rank}</td><td class="n">${esc(p.name)}</td>
+      <td class="v">${p.points} pts${p.wins ? `<span class="wins">best in ${p.wins}</span>` : ''}</td></tr>`).join('')
   }</table></div>`;
 
   // 2) Every friend's score in every game; the best one(s) per game highlighted.
@@ -250,12 +252,12 @@ async function renderBoard() {
     const cells = overall.map((o) => {
       const p = byName[o.name];
       if (!p) return '<td class="none">—</td>';
-      return `<td class="${p.rank === 1 ? 'best' : ''}">${p.rank === 1 ? '🥇 ' : ''}${esc(p.label)}<small>${p.points} pts</small></td>`;
+      return `<td class="${p.rank === 1 ? 'best' : ''}">${esc(p.label)}<small>${p.points} pts</small></td>`;
     }).join('');
-    return `<tr><th class="g">${g.emoji} ${g.name}</th>${cells}</tr>`;
+    return `<tr><th class="g">${g.name}</th>${cells}</tr>`;
   }).join('');
   const total = overall.map((p) => `<td>${p.points} pts</td>`).join('');
-  html += `<div class="board-card"><h3>📊 Every score</h3>
+  html += `<div class="board-card"><h3>The Scoresheet</h3>
     <div class="grid-scroll"><table class="grid">
       <thead><tr><th class="g"></th>${head}</tr></thead>
       <tbody>${body}<tr class="total"><th class="g">Total</th>${total}</tr></tbody>
@@ -277,7 +279,7 @@ $('scoring-list').innerHTML = GAMES.map((g) => `<li>${g.emoji} <b>${g.name}</b>:
 // ---------- settings ----------
 function openSettings() {
   const firstTime = !profile.name;
-  $('settings-title').textContent = firstTime ? "👋 What's your name?" : 'Settings';
+  $('settings-title').textContent = firstTime ? "Who's playing?" : 'Settings';
   $('settings-save').textContent = firstTime ? "Let's play" : 'Save';
   $('clear-today').closest('.row').hidden = firstTime;
   $('set-name').value = profile.name;
@@ -302,8 +304,12 @@ function saveSettings(e) {
 }
 
 function renderHeader() {
-  $('today-label').textContent = prettyDate();
-  $('me-name').textContent = profile.name || 'Set name';
+  const now = new Date();
+  // Edition number = day of the year, like a paper's issue number.
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  $('edition-no').textContent = `No. ${dayOfYear} · Vol. ${now.getFullYear()}`;
+  $('today-label').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('me-name').textContent = profile.name || 'Sign in';
   $('demo-banner').hidden = !isDemo;
 }
 
@@ -383,41 +389,6 @@ document.addEventListener('visibilitychange', () => {
   autoPasteOnReturn();
 });
 window.addEventListener('focus', autoPasteOnReturn);
-
-// ---------- "add to home screen" tip ----------
-// Shown once until dismissed, and never when already opened from the home screen.
-const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-const tipDismissed = () => load('dgh.installTipDismissed', false);
-let installPrompt = null;
-function showInstallTip(text, withButton) {
-  if (standalone || tipDismissed()) return;
-  $('install-text').innerHTML = text;
-  $('install-btn').hidden = !withButton;
-  $('install-tip').hidden = false;
-}
-const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-if (isIOS) showInstallTip('Tip: tap <b>Share ⬆︎</b> → <b>Add to Home Screen</b> to get this as an app.');
-if (/Android/.test(navigator.userAgent)) {
-  // If Chrome doesn't offer its own Install prompt, point at the menu instead.
-  setTimeout(() => { if (!installPrompt) showInstallTip('Tip: tap <b>⋮</b> → <b>Add to Home screen</b> to get this as an app.'); }, 3000);
-}
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Android / desktop Chrome: offer a real Install button.
-  e.preventDefault();
-  installPrompt = e;
-  showInstallTip('Get Daily Games as an app on your home screen.', true);
-});
-$('install-btn').addEventListener('click', async () => {
-  if (!installPrompt) return;
-  installPrompt.prompt();
-  await installPrompt.userChoice;
-  installPrompt = null;
-  $('install-tip').hidden = true;
-});
-$('install-close').addEventListener('click', () => {
-  save('dgh.installTipDismissed', true);
-  $('install-tip').hidden = true;
-});
 
 renderHeader();
 renderPlay();

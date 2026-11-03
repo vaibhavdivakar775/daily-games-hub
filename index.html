@@ -3,68 +3,68 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#16a34a">
+  <meta name="theme-color" content="#f3ede0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15130f" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Daily Games Hub</title>
+  <meta name="apple-mobile-web-app-title" content="Daily Games">
+  <title>The Daily Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-title" content="Daily Games">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-  <header class="top">
-    <div>
-      <h1>🎮 Daily Games</h1>
-      <div class="sub" id="today-label"></div>
+  <header class="masthead">
+    <div class="edition">
+      <span id="edition-no"></span>
+      <button class="byline" id="open-settings" aria-label="Change your name"><span id="me-name"></span> ✎</button>
     </div>
-    <button class="chip" id="open-settings" aria-label="Settings">⚙️ <span id="me-name"></span></button>
+    <h1>The Daily Games</h1>
+    <div class="dateline" id="today-label"></div>
   </header>
 
-  <div class="demo-banner" id="demo-banner" hidden>
-    Demo mode: scores stay on this device and Aarav, Riya and Kabir are fake friends.
-  </div>
-
-  <div class="install-tip" id="install-tip" hidden>
-    <span id="install-text"></span>
-    <button class="btn primary" id="install-btn" hidden>Install</button>
-    <button class="x" id="install-close" aria-label="Dismiss">✕</button>
+  <div class="note" id="demo-banner" hidden>
+    <b>Editor's note:</b> demo mode. Scores stay on this device, and Aarav, Riya and Kabir are made up.
   </div>
 
   <main>
     <!-- PLAY -->
     <section id="tab-play" class="tab">
-      <div class="progress">
-        <div class="progress-text"><b id="done-count">0</b> of <b id="total-count">0</b> done today</div>
-        <div class="bar"><div id="bar-fill"></div></div>
+      <div class="section-head">
+        <h2>Today's Puzzles</h2>
+        <span class="tally"><b id="done-count">0</b> of <b id="total-count">0</b> solved</span>
       </div>
+      <div class="ticks" id="ticks" aria-hidden="true"></div>
 
       <div class="next-row">
         <a class="next-btn" id="next-btn" target="_blank" rel="noopener"></a>
-        <button class="skip-btn" id="skip-btn" aria-label="Skip this game today">Skip ›</button>
+        <button class="skip-btn" id="skip-btn" aria-label="Skip this game today">Skip</button>
       </div>
 
-      <button class="paste-btn" id="paste-btn">📋 Paste result</button>
-      <p class="hint">After a game, tap its <b>Share</b> button, come back here and tap <b>Paste</b>. You can also paste several results at once.</p>
+      <button class="paste-btn" id="paste-btn">Paste result</button>
+      <p class="hint">Finish a game, tap its <b>Share</b> button, then come back and tap <b>Paste</b>. Several results at once is fine too.</p>
 
       <details class="manual" id="manual">
-        <summary>Paste didn't work? Type or paste here instead</summary>
-        <textarea id="manual-text" rows="5" placeholder="Long-press → Paste your result(s) here"></textarea>
+        <summary>Paste not working? Type it in instead</summary>
+        <textarea id="manual-text" rows="5" placeholder="Long-press here and choose Paste"></textarea>
         <button class="btn" id="manual-add">Add</button>
       </details>
 
-      <ul class="games" id="game-list"></ul>
+      <ol class="games" id="game-list"></ol>
     </section>
 
     <!-- COPY RESULTS -->
     <section id="tab-summary" class="tab" hidden>
+      <div class="section-head"><h2>Your Results</h2></div>
       <div class="seg" role="tablist">
         <button data-format="full" class="on">Original</button>
         <button data-format="compact">Compact</button>
       </div>
       <div class="row copy-row">
-        <button class="btn primary" id="copy-summary">📋 Copy for group chat</button>
+        <button class="btn primary" id="copy-summary">Copy for group chat</button>
         <button class="btn share" id="share-summary" aria-label="Share">Share…</button>
       </div>
       <div class="preview-label" id="summary-meta"></div>
@@ -75,7 +75,7 @@
     <section id="tab-board" class="tab" hidden>
       <div id="board"></div>
       <div class="row">
-        <button class="btn" id="refresh-board">↻ Refresh</button>
+        <button class="btn" id="refresh-board">Refresh</button>
         <button class="btn primary" id="copy-board">Copy leaderboard</button>
       </div>
       <details class="scoring">
@@ -87,9 +87,9 @@
   </main>
 
   <nav class="tabs">
-    <button data-tab="play" class="on"><span>🕹️</span>Play</button>
-    <button data-tab="summary"><span>📋</span>Copy Results</button>
-    <button data-tab="board"><span>🏆</span>Leaderboard</button>
+    <button data-tab="play" class="on">Play</button>
+    <button data-tab="summary">Copy Results</button>
+    <button data-tab="board">Leaderboard</button>
   </nav>
 
   <!-- SETTINGS -->
