@@ -1,0 +1,167 @@
+[
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "connections",
+    "value": 1,
+    "label": "1 mistake",
+    "puzzle": "#1241",
+    "ts": 1793689433425
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "farflung",
+    "value": 260,
+    "label": "260/500 km",
+    "puzzle": "#30",
+    "ts": 1793690086891
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "globle",
+    "value": 1,
+    "label": "1 guesses",
+    "puzzle": "Nov 3, 2026",
+    "ts": 1793689308470
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "krillion",
+    "value": 385,
+    "label": "385",
+    "puzzle": "#111",
+    "ts": 1793689665012
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "maptap",
+    "value": 955,
+    "label": "955",
+    "puzzle": "November 3",
+    "ts": 1793689333934
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-03",
+    "game": "wordle",
+    "value": 3,
+    "label": "3/6",
+    "puzzle": "#1,963",
+    "ts": 1793689814932
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "connections",
+    "value": 0,
+    "label": "0 mistakes",
+    "puzzle": "#1241",
+    "ts": 1793686980323
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "cryptic",
+    "value": -2,
+    "label": "0 hints (−2 par)",
+    "puzzle": "3 November, 2026",
+    "ts": 1793686967651
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "farflung",
+    "value": 310,
+    "label": "310/500 km",
+    "puzzle": "#30",
+    "ts": 1793687022698
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "globle",
+    "value": 3,
+    "label": "3 guesses",
+    "puzzle": "Nov 3, 2026",
+    "ts": 1793686995677
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "krillion",
+    "value": 345,
+    "label": "345",
+    "puzzle": "#110",
+    "ts": 1793686945077
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "maptap",
+    "value": 961,
+    "label": "961",
+    "puzzle": "November 3",
+    "ts": 1793686931865
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "perceptle",
+    "value": 72,
+    "label": "B (72)",
+    "puzzle": "#108",
+    "ts": 1793687022698
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-03",
+    "game": "wordle",
+    "value": 3,
+    "label": "3/6",
+    "puzzle": "#1,963",
+    "ts": 1793686967651
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "Vaibhav",
+    "date": "2026-11-03",
+    "game": "maptap",
+    "value": 841,
+    "label": "841",
+    "puzzle": "November 3",
+    "ts": 1793687470784
+  }
+]
