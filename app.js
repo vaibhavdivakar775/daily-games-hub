@@ -71,6 +71,7 @@ function toast(msg) {
 
 // ---------- tabs ----------
 function showTab(name) {
+  document.body.dataset.tab = name; // the Play tab leaves extra room at the bottom for the paste box
   for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('on', b.dataset.tab === name);
   for (const s of document.querySelectorAll('.tab')) s.hidden = s.id !== `tab-${name}`;
   if (name === 'summary') renderSummary();
@@ -499,6 +500,14 @@ function renderHeader() {
 }
 
 // ---------- wire up ----------
+// The paste box sits on top of the tab bar, so keep track of the bar's real height
+// (it changes with the phone's safe area and font size).
+const tabsBar = document.querySelector('.tabs');
+const syncTabsHeight = () => document.documentElement.style.setProperty('--tabs-h', `${tabsBar.offsetHeight}px`);
+syncTabsHeight();
+new ResizeObserver(syncTabsHeight).observe(tabsBar);
+document.body.dataset.tab = 'play';
+
 // ---------- the paste box ----------
 // Paste into it (long-press or right-click → Paste, or Cmd/Ctrl+V) and the result is saved
 // at once; there's no Add button. The box empties itself afterwards.

@@ -30,6 +30,7 @@
   --marker: rgb(245 214 70 / .7);
   color-scheme: light;
 }
+:root[data-theme="paper"] .pastebox { box-shadow: 0 -8px 18px rgb(26 24 20 / .12); }
 :root[data-theme="paper"] .grid td.best,
 :root[data-theme="paper"] .grid td.best small { color: var(--ink); }
 
@@ -141,19 +142,21 @@ dialog .intro { margin: -6px 0 16px; font: 15px/1.45 var(--sans); color: var(--i
 /* ---------- play controls ---------- */
 .hint { color: var(--muted); font-size: 14px; margin: 12px 2px; }
 
-/* ---------- the paste box: sticks to the top of the screen while you scroll ---------- */
+/* ---------- the paste box: fixed just above the tab bar on the Play tab ---------- */
 .pastebox {
-  position: sticky; top: 0; z-index: 30;
-  margin: 0 -16px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  background: var(--paper);
+  position: fixed; left: 0; right: 0; bottom: var(--tabs-h, 52px); z-index: 45;
+  padding: 10px 16px; background: var(--paper);
+  box-shadow: 0 -8px 18px rgb(0 0 0 / .35);   /* lifts it off the list scrolling underneath */
 }
 .pastebox textarea {
-  display: block; width: 100%; resize: none; outline: none;
-  padding: 12px 14px; border: 1.5px solid var(--rule); background: var(--paper-2);
-  font: 500 15px/1.45 var(--sans); color: var(--ink);
+  display: block; width: 100%; max-width: 528px; margin: 0 auto; resize: none; outline: none;
+  padding: 12px 14px; border: 3px solid var(--orange); background: var(--paper-2);
+  font: 600 15px/1.45 var(--sans); color: var(--ink);
 }
-.pastebox textarea::placeholder { color: var(--muted); opacity: 1; }
-.pastebox textarea:focus { border-color: var(--orange); }
+.pastebox textarea::placeholder { color: var(--ink-soft); opacity: 1; }
+.pastebox textarea:focus { background: var(--paper); }
+/* room for the paste box under the last game */
+body[data-tab="play"] { padding-bottom: calc(var(--tabs-h, 52px) + 110px); }
 
 /* ---------- the puzzle index ---------- */
 .games { list-style: none; padding: 0; margin: 6px 0 16px; }
@@ -343,14 +346,14 @@ dialog .intro { margin: -6px 0 16px; font: 15px/1.45 var(--sans); color: var(--i
   content: ""; position: absolute; left: 50%; bottom: 9px; width: 26px; height: 3px;
   background: var(--orange); transform: translateX(-50%);
 }
-/* the centre tab is the main button: a raised orange block that sticks up above the bar */
-.tabs { align-items: flex-end; }
+/* the centre tab is the main button: an orange block, level with the other two */
+.tabs { align-items: center; }
 .tabs button.main-tab {
-  flex: 0 0 auto; align-self: flex-start; margin: -20px 6px 8px; padding: 12px 16px;
-  background: var(--orange); color: var(--on-orange); border: 3px solid var(--paper);
-  font-size: 13px; font-weight: 900; line-height: 1.15; max-width: 150px; white-space: normal;
+  flex: 1.4; align-self: stretch; margin: 6px 4px; padding: 0 6px;
+  background: var(--orange); color: var(--on-orange);
+  font-size: 12.5px; font-weight: 900; line-height: 1.15;
 }
-.tabs button.main-tab.on { color: var(--on-orange); outline: 2px solid var(--orange); outline-offset: 2px; }
+.tabs button.main-tab.on { outline: 2px solid var(--ink); outline-offset: -5px; }
 .tabs button.main-tab.on::after { display: none; }
 
 /* ---------- credit ---------- */
@@ -385,7 +388,7 @@ dialog input:not([type]), dialog input[type=text] {
 
 /* ---------- toast ---------- */
 .toast {
-  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 150; /* clear of the raised centre tab */
+  position: fixed; left: 50%; bottom: calc(var(--tabs-h, 52px) + 140px); z-index: 150; /* clear of the tab bar and the paste box */
   transform: translateX(-50%) translateY(16px); opacity: 0; pointer-events: none;
   background: var(--orange); color: var(--on-orange); padding: 10px 16px;
   font: 600 14px/1.4 var(--sans); transition: .25s; max-width: calc(100% - 32px); text-align: center;

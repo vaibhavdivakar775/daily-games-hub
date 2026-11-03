@@ -24,8 +24,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap">
   <!-- Version stamp: tools/release.mjs updates every ?v= below and version.json on each release,
        so phones never keep running an old copy. -->
-  <meta name="app-version" content="20261103072803">
-  <link rel="stylesheet" href="styles.css?v=20261103072803">
+  <meta name="app-version" content="20261103073202">
+  <link rel="stylesheet" href="styles.css?v=20261103073202">
   <script>
     // Apply the saved theme before the page paints, so there's no flash of the other one.
     try {
@@ -66,7 +66,7 @@
         <p>Your group's daily games in one place.</p>
         <ol>
           <li><b>Play</b>: tap a game below to open it.</li>
-          <li><b>Paste</b>: when you finish, tap <i>Share</i> in the game, then paste it into the box at the top. The game is detected automatically.</li>
+          <li><b>Paste</b>: when you finish, tap <i>Share</i> in the game, then paste it into the orange box at the bottom. The game is detected automatically.</li>
           <li><b>Send</b>: tap the orange <i>Copy final results</i> button at the bottom and paste it into any chat.</li>
           <li><b>Win</b>: every game is normalised to 0–100 points. Check the total online <i>Leaderboard</i> for your group.</li>
         </ol>
@@ -78,15 +78,15 @@
       </div>
       <div class="ticks" id="ticks" aria-hidden="true"></div>
 
-      <!-- The paste box: stays at the top of the screen while you scroll. Pasting into it saves
-           the result straight away; inputmode="none" keeps the phone keyboard from popping up. -->
+      <!-- The paste box: fixed just above the tab bar, so it never moves while you scroll. Pasting
+           into it saves the result straight away; inputmode="none" keeps the phone keyboard down. -->
       <div class="pastebox" id="pastebox">
-        <textarea id="paste-input" rows="3" inputmode="none" autocomplete="off" autocorrect="off" spellcheck="false"
+        <textarea id="paste-input" rows="2" inputmode="none" autocomplete="off" autocorrect="off" spellcheck="false"
           aria-label="Paste your game result here"
-          placeholder="📋 Paste your result here&#10;Long-press or right-click → Paste&#10;The game is detected automatically"></textarea>
+          placeholder="📋 Paste your result here&#10;The game is detected automatically"></textarea>
       </div>
 
-      <p class="hint">Tap <b>Play</b> to open a game. When you finish, tap <b>Share</b> in the game and paste it into the box above.</p>
+      <p class="hint">Tap <b>Play</b> to open a game. When you finish, tap <b>Share</b> in the game and paste it into the orange box below.</p>
 
       <ol class="games" id="game-list"></ol>
     </section>
@@ -162,13 +162,13 @@
 
   <script type="importmap">
     { "imports": {
-      "./games.js": "./games.js?v=20261103072803",
-      "./config.js": "./config.js?v=20261103072803",
-      "./storage.js": "./storage.js?v=20261103072803",
-      "./leaderboard.js": "./leaderboard.js?v=20261103072803",
-      "./stats.js": "./stats.js?v=20261103072803"
+      "./games.js": "./games.js?v=20261103073202",
+      "./config.js": "./config.js?v=20261103073202",
+      "./storage.js": "./storage.js?v=20261103073202",
+      "./leaderboard.js": "./leaderboard.js?v=20261103073202",
+      "./stats.js": "./stats.js?v=20261103073202"
     } }
   </script>
-  <script type="module" src="app.js?v=20261103072803"></script>
+  <script type="module" src="app.js?v=20261103073202"></script>
 </body>
 </html>
