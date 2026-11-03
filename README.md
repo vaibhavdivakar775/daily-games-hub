@@ -5,11 +5,11 @@ It's free to host: a static site on GitHub Pages, with the leaderboard stored in
 
 ## How friends use it
 1. Open the link and enter your name. That's all the setup there is.
-2. Tap **Start / Next ↗** to open a game in a new tab and play it.
+2. Tap **Play** next to a game to open it in a new tab.
 3. In the game, tap **Share** (on iPhone pick **Copy** if a share sheet appears).
-4. Come back and tap **📋 Paste result**. The hub works out which game it was by itself.
+4. Come back and tap **Paste** next to it. DailyHub works out which game the result is from.
    You can also paste several results at once, or a whole WhatsApp chunk.
-5. When you're done, open **Copy Results**, pick Original or Compact, then tap **Copy for group chat** or **Share…**.
+5. Tap **Copy results** at the bottom whenever you like, and paste it into any chat. The **Copy Results** tab also has Send to WhatsApp and a Compact option.
 6. **Leaderboard** shows today's standings (with how many games each person has played and who hasn't played yet), a per-game ranking, and the full grid. **Send to WhatsApp** opens WhatsApp with the message typed in.
 
 ## Files

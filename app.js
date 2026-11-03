@@ -11,7 +11,6 @@ const PROFILE_KEY = 'dgh.profile';
 // Demo mode (?demo) keeps its own copy, so test pastes can never reach the real leaderboard.
 const modeTag = isDemo ? 'demo.' : '';
 const resultsKey = () => `dgh.results.${modeTag}${dateKey()}`;
-const skippedKey = () => `dgh.skipped.${modeTag}${dateKey()}`;
 
 function load(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -25,7 +24,6 @@ let profile = load(PROFILE_KEY, {
 });
 profile.summaryFormat ||= 'full'; // 'full' = the games' original share texts (shown as "Original"); the default
 let results = load(resultsKey(), {}); // { gameId: { label, value, puzzle, full, synced } }
-let skipped = load(skippedKey(), []); // games passed over today with "Skip"
 let boardText = '';
 let healed = false;
 let boardRequest = 0; // so a slow leaderboard load can't overwrite a newer one
@@ -144,24 +142,8 @@ function renderPlay() {
   $('total-count').textContent = games.length;
   $('ticks').innerHTML = games.map((g) => `<i class="${results[g.id] ? 'on' : ''}"></i>`).join('');
 
-  const next = games.find((g) => !results[g.id] && !skipped.includes(g.id));
-  const nb = $('next-btn');
-  $('skip-btn').hidden = !next;
-  if (next) {
-    nb.href = next.url;
-    nb.target = '_blank';
-    nb.dataset.game = next.id;
-    nb.innerHTML = `<small>${done ? 'Next up' : 'Start with'}</small>${next.name}`;
-    nb.classList.remove('all-done');
-  } else {
-    nb.removeAttribute('href');
-    nb.removeAttribute('target');
-    delete nb.dataset.game;
-    nb.innerHTML = done === games.length
-      ? '<small>All eight solved</small>Copy your results →'
-      : '<small>Done for today?</small>Copy your results →';
-    nb.classList.add('all-done');
-  }
+  $('copy-bar').hidden = done === 0;
+  $('copy-all').textContent = `Copy results (${done})`;
 
   $('game-list').innerHTML = games.map((g) => {
     const r = results[g.id];
@@ -171,7 +153,8 @@ function renderPlay() {
         <div class="name">${g.name}${r ? (isMyNewBest(g.id, r.value) ? '<span class="stamp best">NEW BEST</span>' : '<span class="stamp">SOLVED</span>') : ''}</div>
         <div class="score">${r ? `${esc(r.label)} <span class="pts">· ${pointsFor(g.id, r.value)} pts</span>` : 'Not played yet'}</div>
       </div>
-      ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>`}
+      ${r ? '' : `<a class="play" href="${g.url}" target="_blank" rel="noopener">Play</a>
+      <button class="paste" data-paste="${g.id}" aria-label="Paste ${g.name} result">Paste</button>`}
       ${r ? `<button class="x" data-remove="${g.id}" aria-label="Remove ${g.name} result">✕</button>` : ''}
     </li>`;
   }).join('');
@@ -251,6 +234,7 @@ async function pasteFromClipboard() {
   } catch {
     // Firefox / denied permission / older iOS: fall back to the manual box.
     $('manual').open = true;
+    $('manual').scrollIntoView({ block: 'center' });
     $('manual-text').focus();
     toast('Long-press the box and tap Paste');
     return 0;
@@ -517,7 +501,6 @@ function renderHeader() {
 }
 
 // ---------- wire up ----------
-$('paste-btn').addEventListener('click', pasteFromClipboard);
 $('manual-add').addEventListener('click', async () => {
   if (await handleText($('manual-text').value)) {
     $('manual-text').value = '';
@@ -534,22 +517,11 @@ function openGame(e, gameId) {
   else location.href = url; // popup blocked: at least get them to the game
 }
 
-$('next-btn').addEventListener('click', (e) => {
-  const id = $('next-btn').dataset.game;
-  if ($('next-btn').getAttribute('href') && id) return openGame(e, id);
-  e.preventDefault();
-  showTab('summary');
-});
-$('skip-btn').addEventListener('click', () => {
-  const next = GAMES.find((g) => !results[g.id] && !skipped.includes(g.id));
-  if (!next) return;
-  skipped.push(next.id);
-  save(skippedKey(), skipped);
-  renderPlay();
-});
 $('game-list').addEventListener('click', async (e) => {
   const link = e.target.closest('a.play');
   if (link) return openGame(e, link.closest('.game').dataset.game);
+  // Paste reads whatever result is on the clipboard; it's matched to its game automatically.
+  if (e.target.closest('[data-paste]')) return pasteFromClipboard();
   const id = e.target.dataset?.remove;
   if (!id) return;
   const r = results[id];
@@ -565,6 +537,7 @@ for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('c
 for (const b of document.querySelectorAll('[data-format]')) {
   b.addEventListener('click', () => { profile.summaryFormat = b.dataset.format; save(PROFILE_KEY, profile); renderSummary(); });
 }
+$('copy-all').addEventListener('click', () => copyText(buildSummary(profile.summaryFormat), 'Copied! Paste it into any chat'));
 $('copy-summary').addEventListener('click', () => copyText(buildSummary(profile.summaryFormat), 'Copied! Paste it into the group chat'));
 $('share-summary').addEventListener('click', () => shareText(buildSummary(profile.summaryFormat)));
 $('refresh-board').addEventListener('click', renderBoard);
@@ -606,7 +579,6 @@ document.addEventListener('visibilitychange', () => {
   // Crossed midnight while the tab was open? Start a fresh day.
   const fresh = load(resultsKey(), {});
   if (JSON.stringify(fresh) !== JSON.stringify(results)) { results = fresh; }
-  skipped = load(skippedKey(), []);
   renderHeader();
   renderPlay();
   autoPasteOnReturn();
