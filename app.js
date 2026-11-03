@@ -28,6 +28,26 @@ let healed = false;
 
 const saveResults = () => save(resultsKey(), results);
 
+// ---------- theme ----------
+// "night" = black & orange (default), "paper" = cream newspaper. Saved with the profile.
+function applyTheme(theme) {
+  if (theme === 'paper') document.documentElement.dataset.theme = 'paper';
+  else delete document.documentElement.dataset.theme;
+  $('theme-color').content = theme === 'paper' ? '#f3ede0' : '#0b0b0b';
+  for (const b of document.querySelectorAll('[data-theme-choice]')) {
+    b.classList.toggle('on', b.dataset.themeChoice === (theme || 'night'));
+  }
+}
+applyTheme(profile.theme);
+for (const b of document.querySelectorAll('[data-theme-choice]')) {
+  // Switches straight away, so you can see it before closing Settings.
+  b.addEventListener('click', () => {
+    profile.theme = b.dataset.themeChoice;
+    save(PROFILE_KEY, profile);
+    applyTheme(profile.theme);
+  });
+}
+
 // ---------- toast ----------
 let toastTimer;
 function toast(msg) {

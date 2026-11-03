@@ -1,5 +1,7 @@
-/* DailyHub: a newspaper puzzle page printed in black and orange.
-   Black paper, white ink, orange for stamps, highlights and the "Hub" box.
+/* DailyHub: a newspaper puzzle page. Two editions, picked in Settings:
+   - "night" (default): black paper, white ink, orange for stamps, highlights and the "Hub" box.
+   - "paper": cream newsprint, black ink, red stamps and a yellow highlighter.
+   --orange is the accent colour in both (it's red in the paper edition).
    Headlines in a heavy serif, reading text in a serif, labels and scores in a clean sans. */
 :root {
   --paper: #0b0b0b;
@@ -16,6 +18,21 @@
   --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
 }
+:root[data-theme="paper"] {
+  --paper: #f3ede0;
+  --paper-2: #faf6ec;
+  --ink: #1a1814;
+  --ink-soft: #3a352c;
+  --muted: #6e6656;
+  --rule: #cfc4ad;
+  --orange: #b4301f;
+  --on-orange: #faf6ec;
+  --marker: rgb(245 214 70 / .7);
+  color-scheme: light;
+}
+:root[data-theme="paper"] .grid td.best,
+:root[data-theme="paper"] .grid td.best small { color: var(--ink); }
+:root[data-theme="paper"] .paste-btn:active { background: #962717; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -167,6 +184,8 @@ b { font-weight: 600; }
 }
 .btn.primary { background: var(--orange); border-color: var(--orange); color: var(--on-orange); }
 .btn:active { opacity: .85; }
+.board-row .btn:first-child { flex: 0 0 auto; min-width: 0; padding: 12px 18px; }
+.board-row .btn.primary { white-space: nowrap; }
 .copy-row { margin-top: 0; }
 .copy-row .btn.primary { flex: 2; padding: 14px; font-size: 19px; font-weight: 900; }
 .copy-row .btn.share { flex: 1; min-width: 0; }
@@ -244,6 +263,13 @@ b { font-weight: 600; }
   background: var(--orange); transform: translateX(-50%);
 }
 
+/* ---------- credit ---------- */
+.credit {
+  max-width: 560px; margin: 8px auto 0; padding: 14px 16px 6px;
+  text-align: center; font: italic 14px var(--serif); color: var(--muted);
+}
+.credit b { font-style: normal; font-weight: 600; color: var(--ink-soft); }
+
 /* ---------- name dialog ---------- */
 dialog {
   border: 1.5px solid var(--ink); padding: 0; width: min(420px, calc(100% - 32px));
@@ -256,6 +282,8 @@ dialog label {
   display: block; margin-bottom: 12px; font: 700 12px var(--sans);
   letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
 }
+dialog .theme-pick { margin: 18px 0 6px; }
+dialog .theme-pick .seg { margin: 6px 0 0; }
 dialog input:not([type]), dialog input[type=text] {
   display: block; width: 100%; margin-top: 6px; padding: 8px 0;
   border: 0; border-bottom: 2px solid var(--orange); background: none;

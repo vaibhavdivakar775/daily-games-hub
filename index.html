@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0b0b0b" id="theme-color">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="DailyHub">
   <title>DailyHub</title>
@@ -11,6 +11,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved theme before the page paints, so there's no flash of the other one.
+    try {
+      const t = JSON.parse(localStorage.getItem('dgh.profile') || '{}').theme;
+      if (t === 'paper') document.documentElement.dataset.theme = 'paper';
+    } catch {}
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/favicon.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -73,7 +80,7 @@
     <!-- LEADERBOARD -->
     <section id="tab-board" class="tab" hidden>
       <div id="board"></div>
-      <div class="row">
+      <div class="row board-row">
         <button class="btn" id="refresh-board">Refresh</button>
         <button class="btn primary" id="copy-board">Copy leaderboard</button>
       </div>
@@ -84,6 +91,8 @@
       </details>
     </section>
   </main>
+
+  <footer class="credit">Created by <b>Vaibhav Divakar</b></footer>
 
   <nav class="tabs">
     <button data-tab="play" class="on">Play</button>
@@ -96,6 +105,13 @@
     <form method="dialog" id="settings-form">
       <h2 id="settings-title">Settings</h2>
       <label>Your name <input id="set-name" required maxlength="20" autocomplete="nickname"></label>
+      <div class="theme-pick">
+        <label>Theme</label>
+        <div class="seg" id="theme-seg">
+          <button type="button" data-theme-choice="night">Black &amp; Orange</button>
+          <button type="button" data-theme-choice="paper">Newspaper</button>
+        </div>
+      </div>
       <div class="row">
         <button class="btn" type="button" id="clear-today">Clear today's results</button>
         <button class="btn" type="button" id="reset-demo" hidden>Reset demo data</button>
