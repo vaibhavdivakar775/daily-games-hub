@@ -27,8 +27,9 @@
     <div class="mast-row">
       <h1 class="logo" aria-label="DailyHub"><span>Daily</span><b>Hub</b></h1>
       <div class="mast-actions">
-        <button class="theme-btn" id="theme-btn" aria-label="Switch theme">
-          <!-- sun: shown on the dark theme (tap for Newspaper); moon: shown on Newspaper -->
+        <!-- Theme toggle: sun = Newspaper (light), moon = Black & Orange (dark). The knob sits on the current one. -->
+        <button class="theme-toggle" id="theme-btn" role="switch" aria-label="Dark theme">
+          <span class="knob" aria-hidden="true"></span>
           <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
           <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
         </button>

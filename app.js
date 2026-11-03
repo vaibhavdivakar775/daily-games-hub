@@ -34,13 +34,14 @@ function applyTheme(theme) {
   if (theme === 'paper') document.documentElement.dataset.theme = 'paper';
   else delete document.documentElement.dataset.theme;
   $('theme-color').content = theme === 'paper' ? '#f3ede0' : '#0b0b0b';
-  $('theme-btn').setAttribute('aria-label', theme === 'paper' ? 'Switch to Black & Orange theme' : 'Switch to Newspaper theme');
+  // Switch is "on" for the dark (Black & Orange) theme.
+  $('theme-btn').setAttribute('aria-checked', String(theme !== 'paper'));
   for (const b of document.querySelectorAll('[data-theme-choice]')) {
     b.classList.toggle('on', b.dataset.themeChoice === (theme || 'night'));
   }
 }
 applyTheme(profile.theme);
-// The sun/moon button in the header flips between the two themes.
+// The sun/moon toggle in the header flips between the two themes.
 $('theme-btn').addEventListener('click', () => {
   profile.theme = profile.theme === 'paper' ? 'night' : 'paper';
   save(PROFILE_KEY, profile);
