@@ -7,8 +7,10 @@ const $ = (id) => document.getElementById(id);
 
 // ---------- local state ----------
 const PROFILE_KEY = 'dgh.profile';
-const resultsKey = () => `dgh.results.${dateKey()}`;
-const skippedKey = () => `dgh.skipped.${dateKey()}`;
+// Demo mode (?demo) keeps its own copy, so test pastes can never reach the real leaderboard.
+const modeTag = isDemo ? 'demo.' : '';
+const resultsKey = () => `dgh.results.${modeTag}${dateKey()}`;
+const skippedKey = () => `dgh.skipped.${modeTag}${dateKey()}`;
 
 function load(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -244,7 +246,7 @@ function setWhatsApp(link, text) {
   link.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
   if (isPhone) link.removeAttribute('target'); else link.target = '_blank';
 }
-for (const id of ['wa-summary', 'wa-board']) {
+for (const id of ['wa-summary']) {
   $(id).addEventListener('click', (e) => {
     if (!$(id).getAttribute('href')) { e.preventDefault(); toast('Nothing to send yet'); }
   });
@@ -390,7 +392,6 @@ async function renderBoard({ refetch = true } = {}) {
     lines.push(`${g.emoji} ${g.name}: ${games[g.id].map((p) => `${p.rank === 1 ? '🥇' : ''}${p.name} ${p.label} [${p.points}]`).join(' · ')}`);
   }
   boardText = overall.length ? lines.join('\n') : '';
-  setWhatsApp($('wa-board'), boardText);
 }
 
 $('board').addEventListener('click', (e) => {

@@ -208,13 +208,14 @@ b { font-weight: 600; }
 .board-row .btn:first-child { flex: 0 0 auto; min-width: 0; padding: 12px 18px; }
 .board-row .btn:last-child { white-space: nowrap; }
 .copy-row { margin-top: 0; }
-/* WhatsApp green so it's recognisable at a glance, in both themes */
+/* the main action on Copy Results: the accent colour, with the WhatsApp logo */
 .btn.wa {
   display: flex; align-items: center; justify-content: center; gap: 9px; text-decoration: none;
-  background: #25d366; border-color: #25d366; color: #0b2e17; padding: 14px; font-size: 18px; font-weight: 900;
+  background: var(--orange); border-color: var(--orange); color: var(--on-orange);
+  padding: 14px; font-size: 18px; font-weight: 900;
 }
 .btn.wa svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
-.btn.wa:active { background: #1ebe5b; }
+.btn.wa:active { opacity: .85; }
 .btn.wa.disabled { opacity: .45; }
 
 /* ---------- results preview: a clipped slip of paper ---------- */

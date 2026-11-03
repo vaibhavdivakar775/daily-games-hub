@@ -85,11 +85,18 @@ const API = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
 const basketName = (group, date) => `${group.toLowerCase()}-${date.slice(0, 7)}`;
 const rowKey = (r) => `${r.date}|${r.name.toLowerCase()}|${r.game}`;
 
-// Pantry rate-limits bursts (HTTP 429), so wait a moment and try again.
+// Pantry rate-limits bursts. In a browser its "too many requests" reply arrives without CORS
+// headers, so fetch() throws instead of returning a 429; treat both as "wait and try again".
 async function pantryFetch(url, opts = {}) {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, opts);
-    if (res.status !== 429 || attempt === 5) return res;
+    let res = null;
+    let error = null;
+    try { res = await fetch(url, opts); } catch (e) { error = e; }
+    if (res && res.status !== 429) return res;
+    if (attempt === 5) {
+      if (res) return res;
+      throw error;
+    }
     await new Promise((r) => setTimeout(r, 2000 + 1000 * attempt + Math.random() * 1000));
   }
 }
