@@ -12,17 +12,17 @@ check('addDays crosses months and years', () => {
 });
 const T = '2026-11-03', W = '2026-10-01';
 check('streak counts back from today', () => {
-  assert.deepEqual(streakOf(new Set(['2026-11-03', '2026-11-02', '2026-11-01', '2026-10-30']), T, W), { days: 3, capped: false });
+  assert.deepEqual(streakOf(new Set(['2026-11-03', '2026-11-02', '2026-11-01', '2026-10-30']), T, W), { days: 3, last: '2026-11-03', capped: false });
 });
 check('streak survives until you play today', () => {
-  assert.deepEqual(streakOf(new Set(['2026-11-02', '2026-11-01']), T, W), { days: 2, capped: false });
+  assert.deepEqual(streakOf(new Set(['2026-11-02', '2026-11-01']), T, W), { days: 2, last: '2026-11-02', capped: false });
 });
 check('streak is 0 after a missed day', () => {
-  assert.deepEqual(streakOf(new Set(['2026-11-01']), T, W), { days: 0, capped: false });
+  assert.deepEqual(streakOf(new Set(['2026-11-01']), T, W), { days: 0, last: null, capped: false });
 });
 check('streak that reaches the data window is marked capped', () => {
   const all = new Set(); for (let d = '2026-11-03'; d >= W; d = addDays(d, -1)) all.add(d);
-  assert.deepEqual(streakOf(all, T, W), { days: 34, capped: true });
+  assert.deepEqual(streakOf(all, T, W), { days: 34, last: '2026-11-03', capped: true });
 });
 check('best: higher-is-better and lower-is-better games', () => {
   assert.equal(bestOf('maptap', [900, 961, 950]), 961);
@@ -50,5 +50,21 @@ import { buildBoard } from '../leaderboard.js';
 check('leaderboard keeps each raw score (needed for personal bests)', () => {
   const { games } = buildBoard([{ name: 'A', date: 'd', game: 'maptap', value: 961, label: '961' }]);
   assert.equal(games.maptap[0].value, 961);
+});
+import { summarize } from '../stats.js';
+check('summarize: names, roster, streaks, bests, today+yesterday rows', () => {
+  const rows = [
+    { name: 'riya', date: '2026-10-31', game: 'maptap', value: 900, ts: 1 },
+    { name: 'Riya', date: '2026-11-01', game: 'maptap', value: 950, ts: 2 },
+    { name: 'Riya', date: '2026-11-02', game: 'wordle', value: 4, ts: 3 },
+    { name: 'Riya', date: '2026-11-03', game: 'maptap', value: 990, ts: 4 },
+    { name: 'Old', date: '2026-10-15', game: 'wordle', value: 3, ts: 0 },
+  ];
+  const s = summarize(rows, '2026-11-03', '2026-10-01');
+  assert.equal(s.names.riya, 'Riya');
+  assert.deepEqual(s.roster, ['riya']);                 // Old didn't play this month
+  assert.deepEqual(s.streaks.riya, { days: 4, last: '2026-11-03', capped: false });
+  assert.deepEqual(s.bests.riya.maptap, { hi: 950, lo: 900 }); // today's 990 not counted
+  assert.equal(s.rows.length, 2);                      // only 2 Nov and 3 Nov
 });
 console.log(`\n${passed} checks passed`);

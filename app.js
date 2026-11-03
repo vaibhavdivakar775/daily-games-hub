@@ -1,6 +1,6 @@
 import { GAMES, GAME_BY_ID, parseAll, daysOld } from './games.js';
 import { GROUP } from './config.js';
-import { isDemo, dateKey, submitResults, removeResults, fetchRows, resetDemo } from './storage.js';
+import { isDemo, dateKey, submitResults, removeResults, fetchBoard, resetDemo } from './storage.js';
 import { buildBoard, pointsFor } from './leaderboard.js';
 import { addDays, streakOf, bestOf, isNewBest, championsOf } from './stats.js';
 
@@ -78,23 +78,24 @@ function showTab(name) {
   window.scrollTo(0, 0);
 }
 
-// ---------- score history (streaks, personal bests, yesterday's champion) ----------
-// One download of this month's and last month's scores, shared by the header, the Play tab
-// and the leaderboard. Reused for 15 s so switching tabs doesn't hit Pantry's rate limit.
+// ---------- leaderboard data (streaks, personal bests, yesterday's champion) ----------
+// One small summary (see summarize() in stats.js), shared by the header, the Play tab and the
+// leaderboard. The last one is kept on the phone so everything shows instantly, then a fresh
+// copy is fetched in the background. Reused for 15 s so switching tabs doesn't refetch.
 const lc = (s) => String(s).toLowerCase();
-const monthStart = () => `${dateKey().slice(0, 8)}01`;
-const historyStart = () => addDays(monthStart(), -1).slice(0, 8) + '01'; // 1st of last month
-let history = null;
-let historyAt = 0;
-let historyLoading = null;
+const BOARD_KEY = `dgh.board.${modeTag}`;
+let board = load(BOARD_KEY, null);
+if (board && board.today !== dateKey()) board = null; // yesterday's summary is no use today
+let boardAt = 0;
+let boardLoading = null;
 
-function loadHistory({ maxAge = 15000 } = {}) {
-  if (history && Date.now() - historyAt < maxAge) return Promise.resolve(history);
-  if (historyLoading) return historyLoading;
-  historyLoading = fetchRows(GROUP, historyStart(), dateKey())
-    .then((rows) => { history = rows; historyAt = Date.now(); return rows; })
-    .finally(() => { historyLoading = null; });
-  return historyLoading;
+function loadBoard({ maxAge = 15000 } = {}) {
+  if (board && Date.now() - boardAt < maxAge) return Promise.resolve(board);
+  if (boardLoading) return boardLoading;
+  boardLoading = fetchBoard(GROUP, dateKey())
+    .then((b) => { board = b; boardAt = Date.now(); save(BOARD_KEY, b); return b; })
+    .finally(() => { boardLoading = null; });
+  return boardLoading;
 }
 
 // My results kept on this device for earlier days: { 'YYYY-MM-DD': { gameId: result } }.
@@ -109,24 +110,24 @@ function myLocalDays() {
   return days;
 }
 
-// Days someone played (server history, plus this device's own record for me).
-function playedDates(nameLc) {
-  const dates = new Set((history || []).filter((r) => lc(r.name) === nameLc).map((r) => r.date));
-  if (nameLc === lc(profile.name)) {
-    for (const [date, res] of Object.entries(myLocalDays())) if (Object.keys(res).length) dates.add(date);
-    if (Object.keys(results).length) dates.add(dateKey());
-  }
-  return dates;
+// Streak from the summary; for me, also counting what's only on this phone so far.
+function streakFor(key) {
+  const base = board?.streaks?.[key] || { days: 0, last: null, capped: false };
+  if (key !== lc(profile.name)) return base;
+  const dates = new Set();
+  for (let i = 0; i < base.days; i++) dates.add(addDays(base.last, -i));
+  for (const [date, res] of Object.entries(myLocalDays())) if (Object.keys(res).length) dates.add(date);
+  if (Object.keys(results).length) dates.add(dateKey());
+  const mine = streakOf(dates, dateKey(), '0000-00-00');
+  return { ...mine, capped: base.capped && mine.days >= base.days };
 }
-const streakFor = (nameLc) => streakOf(playedDates(nameLc), dateKey(), historyStart());
 const streakText = (st, long) => st.days < 2 ? '' : `🔥 ${st.days}${st.capped ? '+' : ''}${long ? '-day streak' : ''}`;
 
-// Best score before today in one game.
-function previousBest(nameLc, gameId) {
-  const values = (history || [])
-    .filter((r) => lc(r.name) === nameLc && r.game === gameId && r.date < dateKey())
-    .map((r) => r.value);
-  if (nameLc === lc(profile.name)) {
+// Best score before today in one game (from the summary, plus this phone's history for me).
+function previousBest(key, gameId) {
+  const b = board?.bests?.[key]?.[gameId];
+  const values = b ? [b.hi, b.lo] : [];
+  if (key === lc(profile.name)) {
     for (const res of Object.values(myLocalDays())) if (res[gameId]) values.push(res[gameId].value);
   }
   return bestOf(gameId, values);
@@ -211,7 +212,7 @@ async function syncPending() {
     })));
     for (const [, r] of pending) r.synced = true;
     saveResults();
-    historyAt = 0; // next leaderboard view re-downloads, so it includes these
+    boardAt = 0; // next leaderboard view re-downloads, so it includes these
   } catch {
     toast('Saved on this device. Leaderboard sync will retry later');
   }
@@ -299,51 +300,68 @@ async function shareText(text) {
 }
 
 // ---------- leaderboard tab ----------
-// refetch: true = Refresh button (always download); false = just switching views (reuse);
-// otherwise reuse a download from the last 15 s.
+// Shows the saved summary straight away (if there is one for today), then fetches a fresh
+// one and redraws. refetch: true = Refresh button (always download), false = just switching
+// views (no download).
 async function renderBoard({ refetch } = {}) {
   const el = $('board');
+  const status = $('board-status');
   const request = ++boardRequest;
-  let all;
-  if (!el.innerHTML.trim()) el.innerHTML = '<div class="empty">Loading…</div>';
+  if (board) drawBoard(board, { fresh: false });
+  else el.innerHTML = '<div class="empty">Loading…</div>';
+  if (refetch === false && board) return;
+  status.textContent = board ? 'Updating…' : '';
   try {
-    all = await loadHistory({ maxAge: refetch === true ? 0 : refetch === false ? Infinity : 15000 });
+    const b = await loadBoard({ maxAge: refetch === true ? 0 : 15000 });
+    if (request !== boardRequest) return; // a newer load started meanwhile
+    status.textContent = '';
+    drawBoard(b, { fresh: true });
   } catch {
-    if (request === boardRequest) el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection and tap Refresh.</div>';
-    return;
+    if (request !== boardRequest) return;
+    if (board) status.textContent = "Couldn't refresh: showing the last saved leaderboard.";
+    else el.innerHTML = '<div class="empty">Couldn\'t reach the leaderboard. Check your connection and tap Refresh.</div>';
   }
-  if (request !== boardRequest) return; // a newer load started meanwhile
+}
+
+function drawBoard(b, { fresh }) {
+  const el = $('board');
   const today = dateKey();
-  const monthRows = all.filter((r) => r.date >= monthStart());
+  const me = lc(profile.name);
 
-  // Everyone who has played this month (latest spelling of their name wins), and today's
-  // scores with each name written that one way, so "Riya" and "riya" are one person.
-  const roster = new Map();
-  for (const r of [...all].sort((x, y) => (x.ts || 0) - (y.ts || 0))) roster.set(lc(r.name), r.name);
-  if (profile.name) roster.set(lc(profile.name), profile.name);
-  const canon = (r) => ({ ...r, name: roster.get(lc(r.name)) });
-  const rows = all.filter((r) => r.date === today).map(canon);
-  const inMonth = new Set(monthRows.map((r) => lc(r.name)));
-  if (profile.name) inMonth.add(lc(profile.name));
+  // Names written one way per person (latest spelling), so "Riya" and "riya" are one person.
+  const roster = new Map(Object.entries(b.names));
+  if (profile.name) roster.set(me, profile.name);
+  const canon = (r) => ({ ...r, name: roster.get(lc(r.name)) || r.name });
+  const inMonth = new Set(b.roster);
+  if (profile.name) inMonth.add(me);
+  const serverToday = b.rows.filter((r) => r.date === today);
 
-  // If any of my saved results didn't make it to the leaderboard, send them again.
-  const mine = new Set(rows.filter((r) => lc(r.name) === lc(profile.name)).map((r) => r.game));
-  const missing = Object.entries(results).filter(([game, r]) => r.synced && !mine.has(game));
-  if (missing.length && !isDemo && !healed) {
-    healed = true; // only once per visit, so a broken connection can't loop
-    for (const [, r] of missing) r.synced = false;
-    saveResults();
-    syncPending().then(() => setTimeout(renderBoard, 1500));
+  // If any of my saved results didn't make it to the leaderboard, send them again
+  // (only judged on fresh data, never on the saved copy).
+  if (fresh) {
+    const mine = new Set(serverToday.filter((r) => lc(r.name) === me).map((r) => r.game));
+    const missing = Object.entries(results).filter(([game, r]) => r.synced && !mine.has(game));
+    if (missing.length && !isDemo && !healed) {
+      healed = true; // only once per visit, so a broken connection can't loop
+      for (const [, r] of missing) r.synced = false;
+      saveResults();
+      syncPending().then(() => setTimeout(() => renderBoard({ refetch: true }), 1500));
+    }
   }
+
+  // Today's scores, with my own taken from this phone so a fresh paste shows up instantly.
+  const myRows = profile.name
+    ? Object.entries(results).map(([game, r]) => ({ name: profile.name, date: today, game, value: r.value, label: r.label }))
+    : [];
+  const rows = serverToday.filter((r) => lc(r.name) !== me).map(canon).concat(myRows);
 
   const { overall, games } = buildBoard(rows);
   const playedToday = new Set(overall.map((p) => lc(p.name)));
   const waiting = [...roster.entries()].filter(([k]) => inMonth.has(k) && !playedToday.has(k)).map(([, n]) => n).sort();
-  const me = lc(profile.name);
   const total = GAMES.length;
 
   // 0) Yesterday's winner, so the board isn't empty first thing in the morning.
-  const champ = championsOf(all.map(canon), addDays(today, -1));
+  const champ = championsOf(b.rows.map(canon), addDays(today, -1));
   let html = champ
     ? `<p class="champ">🏆 Yesterday: <b>${champ.names.map(esc).join(' &amp; ')}</b>, ${champ.points} pts</p>`
     : '';
@@ -460,7 +478,7 @@ function saveSettings(e) {
     }
     for (const r of Object.values(results)) r.synced = false;
     saveResults();
-    historyAt = 0;
+    boardAt = 0;
   }
   renderHeader();
   renderPlay();
@@ -595,6 +613,7 @@ renderHeader();
 renderPlay();
 syncPending();
 if (!profile.name) openSettings();
-// Streaks and personal bests need the score history: fetch it quietly in the background.
-loadHistory().then(() => { renderHeader(); renderPlay(); }).catch(() => {});
+// Streaks and personal bests need the leaderboard summary: use the saved one now, and fetch
+// a fresh one quietly in the background.
+loadBoard().then(() => { renderHeader(); renderPlay(); }).catch(() => {});
 checkForUpdate();

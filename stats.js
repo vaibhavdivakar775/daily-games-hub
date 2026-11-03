@@ -15,13 +15,14 @@ export function addDays(key, n) {
 // `capped` is true when the streak runs back to the start of the data we have, meaning the
 // real streak may be longer.
 export function streakOf(dates, today, windowStart) {
-  let day = dates.has(today) ? today : addDays(today, -1);
+  const last = dates.has(today) ? today : addDays(today, -1);
+  let day = last;
   let days = 0;
   while (dates.has(day)) {
     days += 1;
     day = addDays(day, -1);
   }
-  return { days, capped: days > 0 && day < windowStart };
+  return { days, last: days ? last : null, capped: days > 0 && day < windowStart };
 }
 
 // Best earlier score for one game, or null if there isn't one.
@@ -46,4 +47,37 @@ export function championsOf(rows, date) {
   const { overall } = buildBoard(day);
   const top = overall.filter((p) => p.rank === 1);
   return { names: top.map((p) => p.name), points: top[0].points };
+}
+
+// Everything the leaderboard, header and Play tab need, boiled down from raw score rows
+// (so it can be cached on the phone and shown instantly). A database can also build this
+// itself and send just the summary.
+//   names:   { key: latest spelling }            (key = lower-case name)
+//   roster:  [key, ...] who played this month
+//   rows:    today's and yesterday's scores
+//   streaks: { key: { days, last, capped } }
+//   bests:   { key: { game: { hi, lo } } }        best scores before today
+export function summarize(rows, today, windowStart) {
+  const yesterday = addDays(today, -1);
+  const monthStart = `${today.slice(0, 8)}01`;
+  const names = {};
+  for (const r of [...rows].sort((x, y) => (x.ts || 0) - (y.ts || 0))) names[r.name.toLowerCase()] = r.name;
+  const roster = [...new Set(rows.filter((r) => r.date >= monthStart).map((r) => r.name.toLowerCase()))];
+  const dates = {};
+  const bests = {};
+  for (const r of rows) {
+    const k = r.name.toLowerCase();
+    (dates[k] ||= new Set()).add(r.date);
+    if (r.date < today && typeof r.value === 'number') {
+      const b = ((bests[k] ||= {})[r.game] ||= { hi: r.value, lo: r.value });
+      b.hi = Math.max(b.hi, r.value);
+      b.lo = Math.min(b.lo, r.value);
+    }
+  }
+  const streaks = {};
+  for (const [k, set] of Object.entries(dates)) streaks[k] = streakOf(set, today, windowStart);
+  return {
+    today, windowStart, names, roster, streaks, bests,
+    rows: rows.filter((r) => r.date === today || r.date === yesterday),
+  };
 }

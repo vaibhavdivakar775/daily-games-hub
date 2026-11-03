@@ -4,6 +4,7 @@
 // Row shape: { group, name, date: 'YYYY-MM-DD', game, value, label, puzzle, ts }
 import { PANTRY_ID } from './config.js';
 import { GAMES } from './games.js';
+import { summarize, addDays } from './stats.js';
 
 // ?demo in the URL forces demo mode, for testing without touching the real leaderboard.
 export const isDemo = !PANTRY_ID || new URLSearchParams(location.search).has('demo');
@@ -162,4 +163,25 @@ export async function fetchRows(group, from, to) {
   return baskets
     .flatMap((b) => Object.values(b))
     .filter((r) => r && r.date && r.date >= from && r.date <= to); // skips _metadata and removed scores
+}
+
+// The leaderboard summary (see summarize() in stats.js), in as few requests as possible:
+// this month's scores (1 request), plus last month's only when it's needed, i.e. today is
+// the 1st (yesterday's champion lives in last month) or someone's streak reaches back past
+// the 1st.
+export async function fetchBoard(group, today) {
+  if (isDemo) {
+    const rows = demoRows(group).filter((r) => r.group.toLowerCase() === group.toLowerCase());
+    return summarize(rows, today, '0000-00-00');
+  }
+  const monthStart = `${today.slice(0, 8)}01`;
+  let rows = await fetchRows(group, monthStart, today);
+  let summary = summarize(rows, today, monthStart);
+  const needLastMonth = today === monthStart || Object.values(summary.streaks).some((s) => s.capped);
+  if (needLastMonth) {
+    const lastMonthStart = `${addDays(monthStart, -1).slice(0, 8)}01`;
+    rows = rows.concat(await fetchRows(group, lastMonthStart, addDays(monthStart, -1)));
+    summary = summarize(rows, today, lastMonthStart);
+  }
+  return summary;
 }
