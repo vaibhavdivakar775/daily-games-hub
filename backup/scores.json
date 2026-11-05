@@ -482,5 +482,170 @@
     "label": "4/6",
     "puzzle": "#1,964",
     "ts": 1793732276847
+  },
+  {
+    "grp": "squad",
+    "name_key": "aryan",
+    "name": "aryan",
+    "date": "2026-11-05",
+    "game": "maptap",
+    "value": 921,
+    "label": "921",
+    "puzzle": "November 5",
+    "ts": 1793855702369
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "connections",
+    "value": 3,
+    "label": "3 mistakes",
+    "puzzle": "#1243",
+    "ts": 1793858103007
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "cryptic",
+    "value": -2,
+    "label": "0 hints (−2 par)",
+    "puzzle": "5 November, 2026",
+    "ts": 1793857383273
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "farflung",
+    "value": 140,
+    "label": "140/500 km",
+    "puzzle": "#32",
+    "ts": 1793857741793
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "globle",
+    "value": 7,
+    "label": "7 guesses",
+    "puzzle": "Nov 5, 2026",
+    "ts": 1793857856849
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "krillion",
+    "value": 285,
+    "label": "285",
+    "puzzle": "#113",
+    "ts": 1793857640048
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "maptap",
+    "value": 895,
+    "label": "895",
+    "puzzle": "November 5",
+    "ts": 1793855998013
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "perceptle",
+    "value": 87,
+    "label": "A (87)",
+    "puzzle": "#111",
+    "ts": 1793856599591
+  },
+  {
+    "grp": "squad",
+    "name_key": "urj",
+    "name": "urj",
+    "date": "2026-11-05",
+    "game": "wordle",
+    "value": 2,
+    "label": "2/6",
+    "puzzle": "#1,965",
+    "ts": 1793856285454
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "cryptic",
+    "value": 6,
+    "label": "8 hints (+6 par)",
+    "puzzle": "5 November, 2026",
+    "ts": 1793898850700
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "farflung",
+    "value": 140,
+    "label": "140/500 km",
+    "puzzle": "#32",
+    "ts": 1793898943901
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "globle",
+    "value": 11,
+    "label": "11 guesses",
+    "puzzle": "Nov 5, 2026",
+    "ts": 1793899183505
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "krillion",
+    "value": 305,
+    "label": "305",
+    "puzzle": "#113",
+    "ts": 1793888842210
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "maptap",
+    "value": 922,
+    "label": "922",
+    "puzzle": "November 5",
+    "ts": 1793888637004
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-05",
+    "game": "perceptle",
+    "value": 65,
+    "label": "C (65)",
+    "puzzle": "#111",
+    "ts": 1793899040230
   }
 ]
