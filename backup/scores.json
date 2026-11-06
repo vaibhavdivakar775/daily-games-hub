@@ -647,5 +647,16 @@
     "label": "C (65)",
     "puzzle": "#111",
     "ts": 1793899040230
+  },
+  {
+    "grp": "squad",
+    "name_key": "vaibhav",
+    "name": "vaibhav",
+    "date": "2026-11-06",
+    "game": "krillion",
+    "value": 300,
+    "label": "300",
+    "puzzle": "#114",
+    "ts": 1793951175711
   }
 ]
